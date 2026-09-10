@@ -24,7 +24,7 @@ public class User {
     private String password;
     @Column(name = "users_matricula")
     private String matricula;
-    @Column(name = "users_matricula")
+    @Column(name = "users_cargo")
     private String cargo;
 
 }
