@@ -1,6 +1,7 @@
 package com.example.demo.controller;
 
-import com.example.demo.entity.User;
+import com.example.demo.DTO.request.UserRequest;
+import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,25 +19,25 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<User> save(@Valid @RequestBody User user){
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.save(user));
+    public ResponseEntity<UserResponse> save(@Valid @RequestBody UserRequest request){
+        return ResponseEntity.status(HttpStatus.CREATED).body(userService.save(request));
     }
 
     @GetMapping
-    public ResponseEntity<List<User>>  getAllUser(){
+    public ResponseEntity<List<UserResponse>>  getAllUser(){
         return ResponseEntity.ok(userService.getAll());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<User> getUserById(@PathVariable Long id) {
+    public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         return userService.getUserById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @RequestBody User user){
-        return ResponseEntity.ok(userService.updateUser(id,user));
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id, @RequestBody UserRequest request){
+        return ResponseEntity.ok(userService.updateUser(id,request));
     }
 
     @DeleteMapping("/{id}")
