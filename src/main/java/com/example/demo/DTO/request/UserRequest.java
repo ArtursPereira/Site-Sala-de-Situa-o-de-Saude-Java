@@ -18,7 +18,7 @@ public record UserRequest(@NotBlank(message = "Nome é obrigatório")
                           @Pattern(regexp = "\\d{11}", message = "Matrícula deve conter exatamente 11 dígitos numéricos")
                           String matricula,
                           @NotBlank(message = "Senha é obrigatória")
-                          @Size(min = 6, message = "Senha deve ter no mínimo 6 caracteres")
+                          @Size(min = 8, max = 128, message = "Senha deve ter entre 8 e 128 caracteres")
 
                           String password)
 

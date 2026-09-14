@@ -6,11 +6,11 @@ import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.entity.User;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,17 +18,27 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final UserMapper mapper;
+    private final PasswordEncoder passwordEncoder;
 
     public UserResponse save(UserRequest request) {
+        if (userRepository.existsByEmail(request.email())) {
+            throw new RuntimeException("E-mail já cadastrado");
+        }
+
+        if (userRepository.existsByMatricula(request.matricula())){
+            throw new RuntimeException("Matricula já cadastrado");
+        }
         User user = mapper.ToEntity(request);
-        return mapper.toResponse(userRepository.save(user));
+        user.setPassword(passwordEncoder.encode(request.password()));
+        User savedUser = userRepository.save(user);
+        return mapper.toResponse(savedUser);
     }
 
     public List<UserResponse> getAll(){
         return userRepository.findAll()
                 .stream()
                 .map(mapper::toResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public Optional<UserResponse> getUserById(Long id) {
@@ -40,8 +50,14 @@ public class UserService {
     public UserResponse updateUser(Long id, UserRequest request){
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
-        mapper.uddateEntityFromRequest(request, user);
-        return mapper.toResponse(userRepository.save(user));
+
+        user.setPassword(
+                passwordEncoder.encode(request.password())
+        );
+
+        User updatedUser = userRepository.save(user);
+
+        return mapper.toResponse(updatedUser);
     }
 
     public void deleteById(Long id) {

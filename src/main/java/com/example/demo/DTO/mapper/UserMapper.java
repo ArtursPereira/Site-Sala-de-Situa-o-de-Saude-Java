@@ -16,6 +16,7 @@ public interface UserMapper {
     UserResponse toResponse(User entity);
 
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "password", ignore = true)
     void uddateEntityFromRequest(UserRequest request, @MappingTarget User entity);
 
 }
