@@ -6,7 +6,6 @@ import com.example.demo.entity.User;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
-import org.mapstruct.control.MappingControl;
 
 @Mapper(componentModel = "spring")
 public interface UserMapper {

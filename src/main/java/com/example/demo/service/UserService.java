@@ -60,7 +60,7 @@ public class UserService {
         return mapper.toResponse(updatedUser);
     }
 
-    public void deleteById(Long id) {
+    public void deleteById(Long id){
         if (!userRepository.existsById(id)){
             throw new RuntimeException("Usuário não encontrado");
         }

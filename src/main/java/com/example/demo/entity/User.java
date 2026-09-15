@@ -20,14 +20,10 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @NotBlank(message = "Nome é obrigatório")
-    @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
     @Column(name = "nome", nullable = false, length = 100)
     private String nome;
 
 
-    @NotBlank(message = "Email é obrigatório")
-    @Email(message = "Email deve ser válido")
     @Column(name = "email", nullable = false, unique = true, length = 254)
     private String email;
 
@@ -36,16 +32,10 @@ public class User {
     private String password;
 
 
-    /*TODO verificar se a matricula pode ou não ter zeros a esquerda
-    Para poder trocar para Long ou deixar como String*/
-    @NotBlank(message = "Matrícula é obrigatória")
-    @Pattern(regexp = "\\d{11}", message = "Matrícula deve conter exatamente 11 dígitos numéricos")
     @Column(name = "matricula", nullable = false, unique = true, length = 11)
     private String matricula;
 
 
-    @NotBlank(message = "Cargo é obrigatório")
-    @Size(min = 3, max = 30, message = "Cargo deve ter entre 3 e 30 caracteres")
     @Column(name = "cargo", nullable = false, length = 30)
     private String cargo;
 
