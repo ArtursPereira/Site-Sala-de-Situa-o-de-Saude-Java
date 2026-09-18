@@ -28,7 +28,7 @@ public class UserService {
         if (userRepository.existsByMatricula(request.matricula())){
             throw new RuntimeException("Matricula já cadastrado");
         }
-        User user = mapper.ToEntity(request);
+        User user = mapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.password()));
         User savedUser = userRepository.save(user);
         return mapper.toResponse(savedUser);
@@ -51,6 +51,7 @@ public class UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
 
+        mapper.updateEntityFromRequest(request, user);
         user.setPassword(
                 passwordEncoder.encode(request.password())
         );

@@ -9,7 +9,7 @@ public record UserRequest(@NotBlank(message = "Nome é obrigatório")
                           @Size(min = 3, max = 100, message = "Nome deve ter entre 3 e 100 caracteres")
                           String nome,
                           @NotBlank(message = "Email é obrigatório")
-                          @Email(message = "Email inválido")
+                          @Email(message = "Email válido")
                           String email,
                           @NotBlank(message = "Cargo é obrigatório")
                           @Size(min = 3, max = 30, message = "O cargo deve ter entre 3 e 30 caracteres")
