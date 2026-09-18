@@ -18,11 +18,6 @@ public class UserController {
 
     private final UserService userService;
 
-    @PostMapping
-    public ResponseEntity<UserResponse> save(@Valid @RequestBody UserRequest request){
-        return ResponseEntity.status(HttpStatus.CREATED).body(userService.save(request));
-    }
-
     @GetMapping
     public ResponseEntity<List<UserResponse>>  getAllUser(){
         return ResponseEntity.ok(userService.getAll());
