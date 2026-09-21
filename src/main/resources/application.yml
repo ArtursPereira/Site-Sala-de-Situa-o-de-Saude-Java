@@ -1,20 +1,20 @@
-services:
-  db:
-    image: postgres:16-alpine
-    container_name: postgres
-    environment:
-      POSTGRES_DB: ${DB_NAME:-sala_saude}
-      POSTGRES_USER: ${DB_USER:-appuser}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
+spring:
+  application:
+    name: sala-de-situacao
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
+    open-in-view: false
+
+  flyway:
+    enabled: true
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: ${JWT_EXPIRATION:3600000}

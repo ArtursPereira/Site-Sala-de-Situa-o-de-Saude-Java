@@ -33,6 +33,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_PROFILES_ACTIVE: dev
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
+      JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
     depends_on:
       db:
         condition: service_healthy
