@@ -1,0 +1,205 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[brazil]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[top=2.5cm,bottom=2.5cm,left=3cm,right=2cm]{geometry}
+\usepackage{hyperref}
+\usepackage{booktabs}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{enumitem}
+
+\hypersetup{
+colorlinks=true,
+linkcolor=blue,
+filecolor=magenta,      
+urlcolor=blue,
+pdftitle={Documentação da Sala de Situação de Saúde - Backend},
+}
+
+% Configuração para trechos de código e JSON
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolour}{rgb}{0.97,0.97,0.97}
+
+\lstset{
+backgroundcolor=\color{backcolour},   
+commentstyle=\color{codegreen},
+keywordstyle=\color{blue},
+numberstyle=\tiny\color{codegray},
+stringstyle=\color{codepurple},
+basicstyle=\ttfamily\footnotesize,
+breakatwhitespace=false,         
+breaklines=true,                 
+keepspaces=true,                 
+numbers=left,                    
+numbersep=5pt,                  
+showspaces=false,                
+showstringspaces=false,
+showtabs=false,                  
+tabsize=2,
+frame=single
+}
+
+\title{\textbf{Sala de Situação de Saúde (NSS) -- Backend}\\\large Documentação Técnica da API e Arquitetura}
+\author{Núcleo de Sala de Situação de Saúde}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Este documento descreve a arquitetura, pilha de tecnologias, estrutura organizacional de código, endpoints de API e instruções operacionais para o backend da Sala de Situação de Saúde (NSS), disponível no repositório \href{https://github.com/ArtursPereira/Site-Sala-de-Situa-o-de-Saude-Java}{Site-Sala-de-Situa-o-de-Saude-Java}.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Visão Geral e Status do Projeto}
+
+O backend da plataforma de \textbf{Sala de Situação de Saúde (NSS)} é desenvolvido com Java 21 e o ecossistema Spring Boot 3. A aplicação tem como responsabilidade gerenciar a persistência de dados em banco relacional, garantir autenticação e autorização seguras e fornecer APIs REST para integração com os clientes web e pipelines de dados.
+
+Atualmente, o projeto encontra-se em estágio inicial de desenvolvimento, com o módulo de \textbf{Autenticação e Gestão de Usuários} funcional:
+\begin{itemize}[noitemsep]
+\item Cadastro de novos usuários;
+\item Autenticação via login com emissão de token JWT;
+\item Hashing seguro de senhas via Argon2;
+\item Consulta e listagem de usuários cadastrados.
+\end{itemize}
+
+\section{Pilha Tecnológica}
+
+A arquitetura adota as seguintes tecnologias:
+\begin{itemize}[noitemsep]
+\item \textbf{Linguagem:} Java 21
+\item \textbf{Framework:} Spring Boot 3.x (Spring Web, Spring Data JPA, Spring Security)
+\item \textbf{Banco de Dados:} PostgreSQL
+\item \textbf{Controle de Migrações:} Flyway
+\item \textbf{Segurança:} JSON Web Tokens (JJWT 0.12.6) e Argon2 Password Encoder
+\item \textbf{Mapeamento de Objetos:} MapStruct 1.6.3
+\item \textbf{Produtividade:} Project Lombok
+\item \textbf{Gerenciador de Dependências:} Apache Maven
+\item \textbf{Contêineres:} Docker e Docker Compose
+\end{itemize}
+
+\section{Estrutura de Diretórios}
+
+O projeto é estruturado em camadas sob o pacote base \texttt{com.example.demo}:
+
+\begin{lstlisting}[language={}, numbers=none]
+src/main/java/com/example/demo/
+├── controller/     # Controladores REST (/auth, /NSS/users)
+├── DTO/            # Objetos de transferência de dados (requests, responses, mappers)
+├── entity/         # Entidades de persistência JPA (ex.: User)
+├── repository/     # Interfaces de acesso a dados via Spring Data JPA
+├── security/       # Filtros JWT, SecurityConfig e UserDetailsService
+└── service/        # Regras de negócio e serviços da aplicação
+\end{lstlisting}
+
+\section{Modelo de Usuário e Autenticação}
+
+A aplicação opera sob o modelo \textit{stateless}, exigindo o cabeçalho \texttt{Authorization: Bearer <token>} para endpoints protegidos. As senhas são processadas com o algoritmo \textbf{Argon2}.
+
+A entidade principal \texttt{User} é composta pelos seguintes atributos:
+\begin{itemize}[noitemsep]
+\item \texttt{nome}: Nome completo do usuário;
+\item \texttt{email}: E-mail de identificação corporativa ou pessoal (chave de login);
+\item \texttt{password}: Hash da senha;
+\item \texttt{matricula}: Registro de identificação institucional;
+\item \texttt{cargo}: Perfil ou papel operacional desempenhado no núcleo.
+\end{itemize}
+
+\section{Endpoints da API REST}
+
+\subsection{Autenticação (\texttt{/auth})}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Método} & \textbf{Endpoint} & \textbf{Acesso} & \textbf{Descrição} \\ \midrule
+POST & \texttt{/auth/register} & Público & Registro de novos usuários \\
+POST & \texttt{/auth/login} & Público & Autenticação e emissão do token JWT \\ \bottomrule
+\end{tabular}
+\caption{Rotas de autenticação da aplicação.}
+\end{table}
+
+\noindent \textbf{Exemplo de Payload para Cadastro (\texttt{POST /auth/register}):}
+\begin{lstlisting}
+{
+"nome": "Nome do Profissional",
+"email": "usuario@saude.gov.br",
+"password": "senhaSegura123",
+"matricula": "123456",
+"cargo": "ANALISTA"
+}
+\end{lstlisting}
+
+\noindent \textbf{Exemplo de Payload para Login (\texttt{POST /auth/login}):}
+\begin{lstlisting}
+{
+"email": "usuario@saude.gov.br",
+"password": "senhaSegura123"
+}
+\end{lstlisting}
+
+\noindent \textbf{Resposta esperada:}
+\begin{lstlisting}
+{
+"token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+}
+\end{lstlisting}
+
+\subsection{Gestão de Usuários (\texttt{/NSS/users})}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{@{}llll@{}}
+\toprule
+\textbf{Método} & \textbf{Endpoint} & \textbf{Acesso} & \textbf{Descrição} \\ \midrule
+GET & \texttt{/NSS/users} & Autenticado & Retorna todos os usuários cadastrados \\
+GET & \texttt{/NSS/users/\{id\}} & Autenticado & Retorna os detalhes do usuário especificado \\ \bottomrule
+\end{tabular}
+\caption{Rotas de consulta e gestão de usuários.}
+\end{table}
+
+\section{Instalação e Execução}
+
+\subsection{Pré-requisitos}
+\begin{itemize}[noitemsep]
+\item Java Development Kit (JDK) 21;
+\item Docker e Docker Compose instalados;
+\item Maven (opcional, o wrapper \texttt{mvnw} está incluso no repositório).
+\end{itemize}
+
+\subsection{Inicialização dos Serviços}
+
+\noindent 1. Inicialize os contêineres de suporte (PostgreSQL):
+\begin{lstlisting}[language=bash, numbers=none]
+docker compose up -d
+\end{lstlisting}
+
+\noindent 2. Execute a aplicação via Spring Boot Wrapper:
+\begin{lstlisting}[language=bash, numbers=none]
+# Em ambientes Linux / macOS:
+./mvnw clean spring-boot:run
+
+# Em ambientes Windows:
+mvnw.cmd clean spring-boot:run
+\end{lstlisting}
+
+Por padrão, a API estará acessível em \texttt{http://localhost:8080}.
+
+\section{Roadmap e Integração com o Ecossistema NSS}
+
+\begin{itemize}
+\item \textbf{Controle de Acesso Baseado em Perfis (RBAC):} Formalização das \textit{roles} institucionais e restrições de rotas por perfil.
+\item \textbf{Integração com o Frontend:} Conexão com o repositório \href{https://github.com/Zadoque/NSS-front-end}{NSS Front-end}.
+\item \textbf{Módulos de Negócio em Saúde:} Implementação das entidades para vigilância em saúde, monitoramento de leitos e indicadores epidemiológicos.
+\item \textbf{Infraestrutura e CI/CD:} Integração com o fluxo contínuo de implantação descrito em \href{https://github.com/Zadoque/NSS-deployment}{NSS Deployment}.
+\end{itemize}
+
+\end{document}
