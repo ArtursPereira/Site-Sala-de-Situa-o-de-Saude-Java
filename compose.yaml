@@ -22,6 +22,29 @@ services:
       start_period: 30s
     restart: unless-stopped
 
+  analytics-db:
+    image: postgres:16-alpine
+    container_name: analytics-postgres
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: ${ANALYTICS_DB_NAME:-analytics_db}
+      POSTGRES_USER: ${ANALYTICS_DB_USER:-analytics_user}
+      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD:?ANALYTICS_DB_PASSWORD must be set}
+    volumes:
+      - analytics_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
   app:
     build: .
     container_name: spring-boot-app
@@ -31,6 +54,9 @@ services:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME:-sala_saude}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-appuser}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
+      ANALYTICS_DATASOURCE_URL: jdbc:postgresql://analytics-db:5432/${ANALYTICS_DB_NAME:-analytics_db}
+      ANALYTICS_DATASOURCE_USERNAME: ${ANALYTICS_DB_USER:-analytics_user}
+      ANALYTICS_DATASOURCE_PASSWORD: ${ANALYTICS_DB_PASSWORD:?ANALYTICS_DB_PASSWORD must be set}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_PROFILES_ACTIVE: dev
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
@@ -38,7 +64,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      analytics-db:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   pgdata:
+  analytics_pgdata:

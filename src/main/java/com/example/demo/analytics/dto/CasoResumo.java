@@ -11,6 +11,6 @@ public record CasoResumo(
         String sexo,
         Integer semanaNotificacao,
         Integer anoNascimento,
-        Integer TotalCasos
+        Integer totalCasos
 ) {
 }
