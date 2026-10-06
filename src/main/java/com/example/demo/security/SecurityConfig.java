@@ -54,6 +54,16 @@ public class SecurityConfig {
                                 "/auth/register",
                                 "/auth/login"
                         ).permitAll()
+
+                        .requestMatchers(HttpMethod.GET,
+                                "/NSS/users/**").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.PUT,
+                                "/NSS/users/**").hasRole("ADMIN")
+
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/NSS/users/**").hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form.disable())

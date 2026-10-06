@@ -12,12 +12,14 @@ public interface UserMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
+    @Mapping(target = "role", ignore = true)
     User toEntity(UserRequest userRequest);
 
     UserResponse toResponse(User entity);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
+    @Mapping(target = "role", ignore = true)
     void updateEntityFromRequest(
             UserRequest request,
             @MappingTarget User entity
