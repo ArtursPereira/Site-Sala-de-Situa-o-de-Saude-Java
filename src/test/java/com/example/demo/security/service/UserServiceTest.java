@@ -14,10 +14,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
@@ -77,4 +76,133 @@ public class UserServiceTest {
                 usuarioSalvo.getRole()
         );
     }
+
+    @Test
+    void cadastroDeveCriptografarSenha() {
+
+        UserRequest request = new UserRequest(
+                "Artur Pereira",
+                "artur@teste.com",
+                "Estagiario",
+                "12345678901",
+                "Artur123"
+        );
+
+        User user = new User();
+
+        when(userRepository.existsByEmail(request.email()))
+                .thenReturn(false);
+
+        when(userRepository.existsByMatricula(request.matricula()))
+                .thenReturn(false);
+
+        when(mapper.toEntity(request))
+                .thenReturn(user);
+
+        when(passwordEncoder.encode("Artur123"))
+                .thenReturn("senha-criptografada");
+
+        when(userRepository.save(any(User.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        userService.save(request);
+
+        ArgumentCaptor<User> captor =
+                ArgumentCaptor.forClass(User.class);
+
+        verify(userRepository)
+                .save(captor.capture());
+
+        User usuarioSalvo = captor.getValue();
+
+        assertEquals(
+                "senha-criptografada",
+                usuarioSalvo.getPassword()
+        );
+
+        assertNotEquals(
+                request.password(),
+                usuarioSalvo.getPassword()
+        );
+
+        verify(passwordEncoder)
+                .encode("Artur123");
+    }
+
+    @Test
+    void cadastroComEmailDuplicadoDeveFalhar() {
+
+        UserRequest request = new UserRequest(
+                "Artur Pereira",
+                "artur@teste.com",
+                "Estagiario",
+                "12345678901",
+                "Artur123"
+        );
+
+        when(userRepository.existsByEmail(request.email()))
+                .thenReturn(true);
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> userService.save(request)
+        );
+
+        assertEquals(
+                "E-mail já cadastrado",
+                exception.getMessage()
+        );
+
+        verify(userRepository, never())
+                .save(any(User.class));
+
+        verify(mapper, never())
+                .toEntity(any());
+
+        verify(passwordEncoder, never())
+                .encode(anyString());
+    }
+
+    @Test
+    void cadastroComMatriculaDuplicadaDeveFalhar() {
+
+        UserRequest request = new UserRequest(
+                "Artur Pereira",
+                "artur@teste.com",
+                "Estagiario",
+                "12345678901",
+                "Artur123"
+        );
+
+        when(userRepository.existsByMatricula(request.matricula()))
+                .thenReturn(true);
+
+        RuntimeException exception = assertThrows(
+                RuntimeException.class,
+                () -> userService.save(request)
+        );
+
+        assertEquals(
+                "Matricula já cadastrado",
+                exception.getMessage()
+        );
+
+        verify(userRepository)
+                .existsByEmail(request.email());
+
+        verify(userRepository)
+                .existsByMatricula(request.matricula());
+
+        verify(userRepository, never())
+                .save(any(User.class));
+
+        verify(mapper, never())
+                .toEntity(any());
+
+        verify(passwordEncoder, never())
+                .encode(anyString());
+
+
+    }
+
 }
