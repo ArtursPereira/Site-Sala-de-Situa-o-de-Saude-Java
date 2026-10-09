@@ -4,6 +4,8 @@ import com.example.demo.DTO.mapper.UserMapper;
 import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.exception.DuplicateEmailException;
+import com.example.demo.exception.DuplicateMatriculaException;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -144,7 +146,7 @@ public class UserServiceTest {
                 .thenReturn(true);
 
         RuntimeException exception = assertThrows(
-                RuntimeException.class,
+                DuplicateEmailException.class,
                 () -> userService.save(request)
         );
 
@@ -178,12 +180,12 @@ public class UserServiceTest {
                 .thenReturn(true);
 
         RuntimeException exception = assertThrows(
-                RuntimeException.class,
+                DuplicateMatriculaException.class,
                 () -> userService.save(request)
         );
 
         assertEquals(
-                "Matricula já cadastrado",
+                "Matrícula já cadastrada",
                 exception.getMessage()
         );
 

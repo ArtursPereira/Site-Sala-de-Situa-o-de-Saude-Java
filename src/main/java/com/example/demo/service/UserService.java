@@ -5,6 +5,8 @@ import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.exception.DuplicateEmailException;
+import com.example.demo.exception.DuplicateMatriculaException;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -23,11 +25,11 @@ public class UserService {
 
     public UserResponse save(UserRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new RuntimeException("E-mail já cadastrado");
+            throw new DuplicateEmailException();
         }
 
         if (userRepository.existsByMatricula(request.matricula())){
-            throw new RuntimeException("Matricula já cadastrado");
+            throw new DuplicateMatriculaException();
         }
         User user = mapper.toEntity(request);
         user.setPassword(passwordEncoder.encode(request.password()));

@@ -51,4 +51,20 @@ public class GlobalExceptionHandler {
                         "E-mail ou matrícula já cadastrados"
                 ));
     }
+
+    @ExceptionHandler({
+            DuplicateEmailException.class,
+            DuplicateMatriculaException.class
+    })
+    public ResponseEntity<Map<String, String>> handleDuplicateUser(
+            RuntimeException exception
+    ) {
+
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of(
+                        "message", exception.getMessage()
+                ));
+
+    }
 }
