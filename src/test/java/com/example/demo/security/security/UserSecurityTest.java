@@ -1,7 +1,13 @@
-package com.example.demo.security;
+package com.example.demo.security.security;
 
+import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.controller.UserController;
+import com.example.demo.exception.GlobalExceptionHandler;
+import com.example.demo.exception.UserNotFoundException;
+import com.example.demo.security.JwtAuthenticationFilter;
+import com.example.demo.security.JwtService;
+import com.example.demo.security.SecurityConfig;
 import com.example.demo.service.UserService;
 
 import org.junit.jupiter.api.Test;
@@ -22,12 +28,14 @@ import java.util.Optional;
 
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(UserController.class)
 @Import({
         SecurityConfig.class,
-        JwtAuthenticationFilter.class
+        JwtAuthenticationFilter.class,
+        GlobalExceptionHandler.class
 })
 class UserSecurityTest {
 
@@ -204,4 +212,90 @@ class UserSecurityTest {
                 get("/NSS/users")
         ).andExpect(status().isUnauthorized());
     }
+
+
+    @Test
+    @WithMockUser(
+            username = "admin@teste.com",
+            roles = "ADMIN"
+    )
+    void deletarUsuarioInexistenteDeveRetornar404() throws Exception {
+
+        Long id = 908L;
+
+        doThrow(new UserNotFoundException())
+                .when(userService)
+                .deleteById(id);
+
+        mockMvc.perform(
+                delete("/NSS/users/{id}", id)
+        )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Usuário não encontrado")
+                );
+        verify(userService).deleteById(id);
+    }
+
+
+    @Test
+    @WithMockUser(
+            username = "admin@teste.com",
+            roles = "ADMIN"
+    )
+    void    atualizarUsuarioInexistenteDeveRetornar404() throws Exception {
+
+        Long id = 32L;
+
+        String json = """
+            {
+                "nome": "Artur Pereira",
+                "email": "artur@teste.com",
+                "cargo": "Estagiario",
+                "matricula": "12345678901",
+                "password": "Artur123"
+            }
+            """;
+
+        when(userService.updateUser(
+                eq(id),
+                any(UserRequest.class)
+        )).thenThrow(new UserNotFoundException());
+
+        mockMvc.perform(
+                put("/NSS/users/{id}", id)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(json)
+        )
+                .andExpect(status().isNotFound())
+                .andExpect(
+                  jsonPath("$.message")
+                          .value("Usuário não encontrado")
+                );
+        verify(userService)
+                .updateUser(eq(id), any(UserRequest.class));
+    }
+
+
+    @Test
+    @WithMockUser(
+            username = "admin@teste.com",
+            roles = "ADMIN"
+    )
+    void buscarUsuarioInexistenteDeveRetornar404() throws Exception {
+        Long id = 250L;
+
+        when(userService.getUserById(id))
+                .thenReturn(Optional.empty());
+
+        mockMvc.perform(
+                get("/NSS/users/{id}", id)
+        )
+                .andExpect(status().isNotFound());
+
+        verify(userService).getUserById(id);
+    }
+
+
 }
