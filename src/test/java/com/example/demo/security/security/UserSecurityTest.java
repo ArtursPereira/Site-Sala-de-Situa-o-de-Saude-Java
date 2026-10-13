@@ -8,6 +8,7 @@ import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.security.JwtAuthenticationFilter;
 import com.example.demo.security.JwtService;
 import com.example.demo.security.SecurityConfig;
+import com.example.demo.service.AdminUserService;
 import com.example.demo.service.UserService;
 
 import org.junit.jupiter.api.Test;
@@ -43,6 +44,9 @@ class UserSecurityTest {
     private MockMvc mockMvc;
 
     @MockitoBean
+    private AdminUserService adminUserService;
+
+    @MockitoBean
     private UserService userService;
 
     @MockitoBean
@@ -73,7 +77,7 @@ class UserSecurityTest {
     )
     void adminDeveConseguirListarUsuarios() throws Exception {
 
-        when(userService.getAll())
+        when(adminUserService.getAll())
                 .thenReturn(List.of());
 
         mockMvc.perform(
@@ -82,7 +86,7 @@ class UserSecurityTest {
                 .andExpect(
                         status().isOk()
                 );
-        verify(userService).getAll();
+        verify(adminUserService).getAll();
     }
 
     @Test
@@ -98,7 +102,7 @@ class UserSecurityTest {
                 status().isForbidden()
         );
 
-        verify(userService, never()).deleteById(1L);
+        verify(adminUserService, never()).deleteById(1L);
     }
 
     @Test
@@ -113,7 +117,7 @@ class UserSecurityTest {
                 delete("/NSS/users/1")
         ).andExpect
                 (status().isNoContent());
-        verify(userService).deleteById(1L);
+        verify(adminUserService).deleteById(1L);
     }
     @Test
     @WithMockUser(
@@ -126,7 +130,7 @@ class UserSecurityTest {
                 get("/NSS/users/1")
         ).andExpect(status().isForbidden());
 
-        verify(userService, never()).getUserById(1L);
+        verify(adminUserService, never()).getUserById(1L);
     }
 
     @Test
@@ -144,13 +148,13 @@ class UserSecurityTest {
                 "12345678901"
         );
 
-        when(userService.getUserById(1L))
+        when(adminUserService.getUserById(1L))
                 .thenReturn(Optional.of(response));
 
         mockMvc.perform(
                 get("/NSS/users/1")
         ).andExpect(status().isOk());
-        verify(userService).getUserById(1L);
+        verify(adminUserService).getUserById(1L);
     }
 
     @Test
@@ -163,7 +167,7 @@ class UserSecurityTest {
                 put("/NSS/users/1")
         ).andExpect(status().isForbidden());
 
-        verify(userService, never())
+        verify(adminUserService, never())
                 .updateUser(anyLong(), any());
     }
     @Test
@@ -181,7 +185,7 @@ class UserSecurityTest {
                 "12345678901"
         );
 
-        when(userService.updateUser(eq(1L), any()))
+        when(adminUserService.updateUser(eq(1L), any()))
                 .thenReturn(response);
 
         String json = """
@@ -202,7 +206,7 @@ class UserSecurityTest {
                 status().isOk()
         );
 
-        verify(userService)
+        verify(adminUserService)
                 .updateUser(eq(1L), any());
     }
 
@@ -224,7 +228,7 @@ class UserSecurityTest {
         Long id = 908L;
 
         doThrow(new UserNotFoundException())
-                .when(userService)
+                .when(adminUserService)
                 .deleteById(id);
 
         mockMvc.perform(
@@ -235,7 +239,7 @@ class UserSecurityTest {
                         jsonPath("$.message")
                                 .value("Usuário não encontrado")
                 );
-        verify(userService).deleteById(id);
+        verify(adminUserService).deleteById(id);
     }
 
 
@@ -258,7 +262,7 @@ class UserSecurityTest {
             }
             """;
 
-        when(userService.updateUser(
+        when(adminUserService.updateUser(
                 eq(id),
                 any(UserRequest.class)
         )).thenThrow(new UserNotFoundException());
@@ -273,7 +277,7 @@ class UserSecurityTest {
                   jsonPath("$.message")
                           .value("Usuário não encontrado")
                 );
-        verify(userService)
+        verify(adminUserService)
                 .updateUser(eq(id), any(UserRequest.class));
     }
 
@@ -286,7 +290,7 @@ class UserSecurityTest {
     void buscarUsuarioInexistenteDeveRetornar404() throws Exception {
         Long id = 250L;
 
-        when(userService.getUserById(id))
+        when(adminUserService.getUserById(id))
                 .thenReturn(Optional.empty());
 
         mockMvc.perform(
@@ -294,7 +298,7 @@ class UserSecurityTest {
         )
                 .andExpect(status().isNotFound());
 
-        verify(userService).getUserById(id);
+        verify(adminUserService).getUserById(id);
     }
 
 

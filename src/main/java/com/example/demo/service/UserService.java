@@ -39,39 +39,6 @@ public class UserService {
         return mapper.toResponse(savedUser);
     }
 
-    public List<UserResponse> getAll(){
-        return userRepository.findAll()
-                .stream()
-                .map(mapper::toResponse)
-                .toList();
-    }
 
-    public Optional<UserResponse> getUserById(Long id) {
-
-        return userRepository.findById(id)
-                .map(mapper::toResponse);
-    }
-
-    public UserResponse updateUser(Long id, UserRequest request){
-        User user = userRepository.findById(id)
-                .orElseThrow(UserNotFoundException::new);
-
-        mapper.updateEntityFromRequest(request, user);
-        user.setPassword(
-                passwordEncoder.encode(request.password())
-        );
-
-        User updatedUser = userRepository.save(user);
-
-        return mapper.toResponse(updatedUser);
-    }
-
-    public void deleteById(Long id){
-        if (!userRepository.existsById(id)){
-            throw new UserNotFoundException();
-        }
-        userRepository.deleteById(id);
-
-    }
 
 }

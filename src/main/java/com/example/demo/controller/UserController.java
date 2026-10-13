@@ -2,7 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.DTO.response.UserResponse;
-import com.example.demo.service.UserService;
+import com.example.demo.service.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -16,28 +16,28 @@ import java.util.List;
 @RequestMapping("/NSS/users")
 public class UserController {
 
-    private final UserService userService;
+    private final AdminUserService adminUserService;
 
     @GetMapping
     public ResponseEntity<List<UserResponse>>  getAllUser(){
-        return ResponseEntity.ok(userService.getAll());
+        return ResponseEntity.ok(adminUserService.getAll());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        return userService.getUserById(id)
+        return adminUserService.getUserById(id)
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PutMapping("/{id}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,  @Valid @RequestBody UserRequest request){
-        return ResponseEntity.ok(userService.updateUser(id,request));
+        return ResponseEntity.ok(adminUserService.updateUser(id,request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUserById(@PathVariable Long id){
-        userService.deleteById(id);
+        adminUserService.deleteById(id);
         return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
