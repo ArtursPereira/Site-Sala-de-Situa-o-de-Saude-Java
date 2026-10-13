@@ -6,6 +6,7 @@ import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateEmailException;
 import com.example.demo.exception.DuplicateMatriculaException;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.service.UserService;
 import org.junit.jupiter.api.Test;
@@ -205,6 +206,28 @@ public class UserServiceTest {
                 .encode(anyString());
 
 
+    }
+
+    @Test
+    void deletarUsuarioInexistenteDeveFalhar() {
+
+        Long id = 999L;
+
+        when(userRepository.existsById(id))
+                .thenReturn(false);
+
+        UserNotFoundException exception = assertThrows(
+                UserNotFoundException.class,
+                () -> userService.deleteById(id)
+        );
+
+        assertEquals(
+                "Usuário não encontrado",
+                exception.getMessage()
+        );
+
+        verify(userRepository, never())
+                .deleteById(id);
     }
 
 }

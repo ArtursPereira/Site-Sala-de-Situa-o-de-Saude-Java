@@ -67,4 +67,15 @@ public class GlobalExceptionHandler {
                 ));
 
     }
+
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, String>> handleUserNotFound(
+            UserNotFoundException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
+                .body(Map.of(
+                        "message", exception.getMessage()
+                ));
+    }
 }

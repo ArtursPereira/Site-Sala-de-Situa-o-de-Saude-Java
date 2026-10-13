@@ -7,6 +7,7 @@ import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateEmailException;
 import com.example.demo.exception.DuplicateMatriculaException;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -53,7 +54,7 @@ public class UserService {
 
     public UserResponse updateUser(Long id, UserRequest request){
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Usuário não encontrado"));
+                .orElseThrow(UserNotFoundException::new);
 
         mapper.updateEntityFromRequest(request, user);
         user.setPassword(
@@ -67,7 +68,7 @@ public class UserService {
 
     public void deleteById(Long id){
         if (!userRepository.existsById(id)){
-            throw new RuntimeException("Usuário não encontrado");
+            throw new UserNotFoundException();
         }
         userRepository.deleteById(id);
 
