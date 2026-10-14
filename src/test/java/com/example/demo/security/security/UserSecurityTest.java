@@ -9,7 +9,6 @@ import com.example.demo.security.JwtAuthenticationFilter;
 import com.example.demo.security.JwtService;
 import com.example.demo.security.SecurityConfig;
 import com.example.demo.service.AdminUserService;
-import com.example.demo.service.UserService;
 
 import org.junit.jupiter.api.Test;
 
@@ -46,8 +45,6 @@ class UserSecurityTest {
     @MockitoBean
     private AdminUserService adminUserService;
 
-    @MockitoBean
-    private UserService userService;
 
     @MockitoBean
     private JwtService jwtService;
@@ -193,8 +190,7 @@ class UserSecurityTest {
               "nome": "Artur Atualizado",
               "email": "artur@teste.com",
               "cargo": "Estagiario",
-              "matricula": "12345678901",
-              "password": "Artur123"
+              "matricula": "12345678901"
             }
             """;
 
@@ -257,8 +253,7 @@ class UserSecurityTest {
                 "nome": "Artur Pereira",
                 "email": "artur@teste.com",
                 "cargo": "Estagiario",
-                "matricula": "12345678901",
-                "password": "Artur123"
+                "matricula": "12345678901"
             }
             """;
 

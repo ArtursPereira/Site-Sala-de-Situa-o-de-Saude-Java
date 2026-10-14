@@ -4,6 +4,8 @@ import com.example.demo.DTO.mapper.UserMapper;
 import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.entity.User;
+import com.example.demo.exception.DuplicateEmailException;
+import com.example.demo.exception.DuplicateMatriculaException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.UserRepository;
 
@@ -13,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
@@ -29,8 +30,6 @@ class AdminUserServiceTest {
     @Mock
     private UserMapper mapper;
 
-    @Mock
-    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private AdminUserService adminUserService;
@@ -90,8 +89,6 @@ class AdminUserServiceTest {
         verify(mapper, never())
                 .updateEntityFromRequest(any(), any());
 
-        verify(passwordEncoder, never())
-                .encode(anyString());
 
         verify(userRepository, never())
                 .save(any(User.class));
@@ -141,12 +138,64 @@ class AdminUserServiceTest {
 
         verify(userRepository).findById(id);
 
+        verify(userRepository)
+                .existsByEmailIgnoreCaseAndIdNot("artur.novo@teste.com", id);
+
+        verify(userRepository)
+                .existsByMatriculaAndIdNot("12345678901", id);
+
         verify(mapper)
                 .updateEntityFromRequest(request, user);
 
         verify(userRepository).save(user);
 
         verify(mapper).toResponse(user);
+    }
+
+    @Test
+    void atualizarComEmailDeOutroUsuarioDeveFalhar() {
+        Long id = 10L;
+        UpdateRequest request = new UpdateRequest(
+                "Artur Pereira",
+                "  OUTRO@TESTE.COM ",
+                "Analista",
+                "12345678901"
+        );
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(new User()));
+        when(userRepository.existsByEmailIgnoreCaseAndIdNot("outro@teste.com", id))
+                .thenReturn(true);
+
+        assertThrows(
+                DuplicateEmailException.class,
+                () -> adminUserService.updateUser(id, request)
+        );
+
+        verify(mapper, never()).updateEntityFromRequest(any(), any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void atualizarComMatriculaDeOutroUsuarioDeveFalhar() {
+        Long id = 10L;
+        UpdateRequest request = new UpdateRequest(
+                "Artur Pereira",
+                "artur@teste.com",
+                "Analista",
+                "12345678901"
+        );
+
+        when(userRepository.findById(id)).thenReturn(Optional.of(new User()));
+        when(userRepository.existsByMatriculaAndIdNot(request.matricula(), id))
+                .thenReturn(true);
+
+        assertThrows(
+                DuplicateMatriculaException.class,
+                () -> adminUserService.updateUser(id, request)
+        );
+
+        verify(mapper, never()).updateEntityFromRequest(any(), any());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -221,4 +270,3 @@ class AdminUserServiceTest {
                 .toResponse(any(User.class));
     }
 }
-

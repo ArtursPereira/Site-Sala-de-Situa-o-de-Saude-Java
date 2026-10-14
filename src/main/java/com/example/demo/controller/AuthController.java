@@ -4,6 +4,7 @@ import com.example.demo.DTO.request.LoginRequest;
 import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.DTO.response.LoginResponse;
 import com.example.demo.DTO.response.UserResponse;
+import com.example.demo.security.EmailNormalizer;
 import com.example.demo.security.JwtService;
 import com.example.demo.service.UserService;
 import jakarta.validation.Valid;
@@ -14,7 +15,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,7 +27,6 @@ public class AuthController {
 
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
-    private final UserDetailsService userDetailsService;
     private final JwtService jwtService;
 
     @PostMapping("/register")
@@ -42,18 +41,16 @@ public class AuthController {
     public ResponseEntity<LoginResponse> login(
             @Valid @RequestBody LoginRequest request
     ) {
-        Authentication authentication =
+        Authentication authenticationRequest =
                 new UsernamePasswordAuthenticationToken(
-                        request.email(),
+                        EmailNormalizer.normalize(request.email()),
                         request.password()
                 );
 
-        authenticationManager.authenticate(authentication);
+        Authentication authentication =
+                authenticationManager.authenticate(authenticationRequest);
 
-        UserDetails userDetails =
-                userDetailsService.loadUserByUsername(
-                        request.email()
-                );
+        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
         String token = jwtService.generateToken(userDetails);
 
