@@ -33,11 +33,11 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(BadCredentialsException.class)
-    public ResponseEntity<?> handleBadCredentiais(){
+    public ResponseEntity<?> handleBadCredentials(){
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
                 .body(Map.of(
-                        "Message",
+                        "message",
                         "Email ou senha inválidos"
                 ));
     }
@@ -48,7 +48,7 @@ public class GlobalExceptionHandler {
                 .status(HttpStatus.CONFLICT)
                 .body(Map.of(
                         "message",
-                        "E-mail ou matrícula já cadastrados"
+                        "Não foi possível salvar os dados por conflito de integridade"
                 ));
     }
 

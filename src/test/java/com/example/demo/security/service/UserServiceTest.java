@@ -49,7 +49,7 @@ public class UserServiceTest {
 
         User user = new User();
 
-        when(userRepository.existsByEmail(request.email()))
+        when(userRepository.existsByEmailIgnoreCase(request.email()))
                 .thenReturn(false);
 
         when(userRepository.existsByMatricula(request.matricula()))
@@ -92,7 +92,7 @@ public class UserServiceTest {
 
         User user = new User();
 
-        when(userRepository.existsByEmail(request.email()))
+        when(userRepository.existsByEmailIgnoreCase(request.email()))
                 .thenReturn(false);
 
         when(userRepository.existsByMatricula(request.matricula()))
@@ -142,7 +142,7 @@ public class UserServiceTest {
                 "Artur123"
         );
 
-        when(userRepository.existsByEmail(request.email()))
+        when(userRepository.existsByEmailIgnoreCase(request.email()))
                 .thenReturn(true);
 
         DuplicateEmailException exception = assertThrows(
@@ -190,7 +190,7 @@ public class UserServiceTest {
         );
 
         verify(userRepository)
-                .existsByEmail(request.email());
+                .existsByEmailIgnoreCase(request.email());
 
         verify(userRepository)
                 .existsByMatricula(request.matricula());
@@ -205,6 +205,27 @@ public class UserServiceTest {
                 .encode(anyString());
 
 
+    }
+
+    @Test
+    void cadastroDeveNormalizarEmailAntesDeConsultarESalvar() {
+        UserRequest request = new UserRequest(
+                "Artur Pereira",
+                "  Artur@Teste.COM  ",
+                "Estagiario",
+                "12345678901",
+                "Artur123"
+        );
+        User user = new User();
+
+        when(mapper.toEntity(request)).thenReturn(user);
+        when(passwordEncoder.encode(request.password())).thenReturn("hash");
+        when(userRepository.save(user)).thenReturn(user);
+
+        userService.save(request);
+
+        verify(userRepository).existsByEmailIgnoreCase("artur@teste.com");
+        assertEquals("artur@teste.com", user.getEmail());
     }
 
 

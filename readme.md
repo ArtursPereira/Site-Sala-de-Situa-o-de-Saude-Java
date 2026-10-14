@@ -7,7 +7,7 @@ O projeto encontra-se em estágio inicial de desenvolvimento, com o módulo de A
 🛠️ Tecnologias Utilizadas
 Linguagem: Java 21
 
-Framework: Spring Boot 3.x
+Framework: Spring Boot 4.x
 
 Spring Web
 
@@ -91,8 +91,8 @@ json
 }
 2. Gestão de Usuários (/NSS/users)
    Método	Endpoint	Acesso	Descrição
-   GET	/NSS/users	Autenticado	Retorna a lista de todos os usuários
-   GET	/NSS/users/{id}	Autenticado	Retorna os detalhes de um usuário específico
+   GET	/NSS/users	ADMIN	Retorna a lista de todos os usuários
+   GET	/NSS/users/{id}	ADMIN	Retorna os detalhes de um usuário específico
    Nota: Para requisições em endpoints protegidos, envie o header Authorization: Bearer <seu_token_jwt>.
 
 ⚙️ Pré-requisitos
@@ -120,7 +120,7 @@ mvnw.cmd clean spring-boot:run
 A API estará disponível por padrão em http://localhost:8080.
 
 🗺️ Roadmap de Integração
-Definir e implementar as permissões baseadas em perfis/roles (ADMIN, OPERADOR, etc.).
+Evoluir as permissões baseadas em perfis conforme os novos módulos forem adicionados.
 
 Integração com o frontend (NSS Front-end).
 

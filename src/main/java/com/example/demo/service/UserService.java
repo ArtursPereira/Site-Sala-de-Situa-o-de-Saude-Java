@@ -7,14 +7,11 @@ import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateEmailException;
 import com.example.demo.exception.DuplicateMatriculaException;
-import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.UserRepository;
+import com.example.demo.security.EmailNormalizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +22,9 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
 
     public UserResponse save(UserRequest request) {
-        if (userRepository.existsByEmail(request.email())) {
+        String normalizedEmail = EmailNormalizer.normalize(request.email());
+
+        if (userRepository.existsByEmailIgnoreCase(normalizedEmail)) {
             throw new DuplicateEmailException();
         }
 
@@ -33,6 +32,7 @@ public class UserService {
             throw new DuplicateMatriculaException();
         }
         User user = mapper.toEntity(request);
+        user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(Role.USER);
         User savedUser = userRepository.save(user);
