@@ -1,8 +1,8 @@
 package com.example.demo.security.security;
 
-import com.example.demo.DTO.request.UserRequest;
+import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.response.UserResponse;
-import com.example.demo.controller.UserController;
+import com.example.demo.controller.AdminUserController;
 import com.example.demo.exception.GlobalExceptionHandler;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.security.JwtAuthenticationFilter;
@@ -32,7 +32,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(UserController.class)
+@WebMvcTest(AdminUserController.class)
 @Import({
         SecurityConfig.class,
         JwtAuthenticationFilter.class,
@@ -264,7 +264,7 @@ class UserSecurityTest {
 
         when(adminUserService.updateUser(
                 eq(id),
-                any(UserRequest.class)
+                any(UpdateRequest.class)
         )).thenThrow(new UserNotFoundException());
 
         mockMvc.perform(
@@ -278,7 +278,7 @@ class UserSecurityTest {
                           .value("Usuário não encontrado")
                 );
         verify(adminUserService)
-                .updateUser(eq(id), any(UserRequest.class));
+                .updateUser(eq(id), any(UpdateRequest.class));
     }
 
 

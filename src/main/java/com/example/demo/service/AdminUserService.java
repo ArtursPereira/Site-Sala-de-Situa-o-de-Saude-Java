@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.DTO.mapper.UserMapper;
+import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.entity.User;
@@ -34,14 +35,11 @@ public class AdminUserService {
                 .map(mapper::toResponse);
     }
 
-    public UserResponse updateUser(Long id, UserRequest request){
+    public UserResponse updateUser(Long id, UpdateRequest request){
         User user = userRepository.findById(id)
                 .orElseThrow(UserNotFoundException::new);
 
         mapper.updateEntityFromRequest(request, user);
-        user.setPassword(
-                passwordEncoder.encode(request.password())
-        );
 
         User updatedUser = userRepository.save(user);
 

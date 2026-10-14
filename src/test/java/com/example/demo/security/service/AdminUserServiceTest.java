@@ -1,7 +1,7 @@
 package com.example.demo.security.service;
 
 import com.example.demo.DTO.mapper.UserMapper;
-import com.example.demo.DTO.request.UserRequest;
+import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.entity.User;
 import com.example.demo.exception.UserNotFoundException;
@@ -64,12 +64,11 @@ class AdminUserServiceTest {
 
         Long id = 999L;
 
-        UserRequest request = new UserRequest(
+        UpdateRequest request = new UpdateRequest(
                 "Artur Pereira",
                 "artur@teste.com",
                 "Estagiario",
-                "12345678901",
-                "Artur123"
+                "12345678901"
         );
 
         when(userRepository.findById(id))
@@ -103,19 +102,18 @@ class AdminUserServiceTest {
 
         Long id = 999L;
 
-        UserRequest request = new UserRequest(
+        UpdateRequest request = new UpdateRequest(
                 "Artur Atualizado",
                 "artur.novo@teste.com",
                 "Analista",
-                "12345678901",
-                "SenhaNova123"
+                "12345678901"
         );
 
         User user = new User();
         user.setId(id);
         user.setNome("Artur Pereira");
         user.setEmail("artur@teste.com");
-        user.setPassword("hash-antigo");
+        user.setPassword("hash-original");
 
         UserResponse response = new UserResponse(
                 id,
@@ -128,8 +126,6 @@ class AdminUserServiceTest {
         when(userRepository.findById(id))
                 .thenReturn(Optional.of(user));
 
-        when(passwordEncoder.encode(request.password()))
-                .thenReturn("hash-novo");
 
         when(userRepository.save(user))
                 .thenReturn(user);
@@ -141,15 +137,12 @@ class AdminUserServiceTest {
 
         assertEquals(response, resultado);
 
-        assertEquals("hash-novo", user.getPassword());
+        assertEquals("hash-original", user.getPassword());
 
         verify(userRepository).findById(id);
 
         verify(mapper)
                 .updateEntityFromRequest(request, user);
-
-        verify(passwordEncoder)
-                .encode(request.password());
 
         verify(userRepository).save(user);
 

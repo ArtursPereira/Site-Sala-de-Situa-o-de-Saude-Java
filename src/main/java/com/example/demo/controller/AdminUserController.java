@@ -1,6 +1,6 @@
 package com.example.demo.controller;
 
-import com.example.demo.DTO.request.UserRequest;
+import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.service.AdminUserService;
 import jakarta.validation.Valid;
@@ -14,7 +14,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/NSS/users")
-public class UserController {
+public class AdminUserController {
 
     private final AdminUserService adminUserService;
 
@@ -31,7 +31,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,  @Valid @RequestBody UserRequest request){
+    public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,  @Valid @RequestBody UpdateRequest request){
         return ResponseEntity.ok(adminUserService.updateUser(id,request));
     }
 

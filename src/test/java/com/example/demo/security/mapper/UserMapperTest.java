@@ -1,6 +1,7 @@
 package com.example.demo.security.mapper;
 
 import com.example.demo.DTO.mapper.UserMapper;
+import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
@@ -28,12 +29,11 @@ public class UserMapperTest {
         user.setPassword("hash-original");
         user.setRole(Role.ADMIN);
 
-         UserRequest request = new UserRequest(
+         UpdateRequest request = new UpdateRequest(
                 "Artur Atualizado",
                 "artur.novo@teste.com",
                 "Diretor",
-                "98765432101",
-                "SenhaNova123"
+                "98765432101"
         );
 
         mapper.updateEntityFromRequest(request, user);

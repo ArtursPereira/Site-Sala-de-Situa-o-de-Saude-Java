@@ -1,5 +1,6 @@
 package com.example.demo.DTO.mapper;
 
+import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.DTO.response.UserResponse;
 import com.example.demo.entity.User;
@@ -21,7 +22,7 @@ public interface UserMapper {
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
     void updateEntityFromRequest(
-            UserRequest request,
+            UpdateRequest request,
             @MappingTarget User entity
     );
 }
