@@ -1,6 +1,8 @@
 package com.example.demo.security.controller;
 
+import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.controller.AuthController;
+import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateEmailException;
 import com.example.demo.exception.DuplicateMatriculaException;
 import com.example.demo.exception.GlobalExceptionHandler;
@@ -17,9 +19,11 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.never;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
