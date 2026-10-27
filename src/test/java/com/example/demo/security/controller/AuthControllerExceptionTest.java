@@ -1,29 +1,30 @@
 package com.example.demo.security.controller;
 
-import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.controller.AuthController;
-import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateEmailException;
 import com.example.demo.exception.DuplicateMatriculaException;
 import com.example.demo.exception.GlobalExceptionHandler;
 import com.example.demo.security.JwtService;
 import com.example.demo.service.UserService;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
-import static org.mockito.Mockito.never;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -104,6 +105,78 @@ public class AuthControllerExceptionTest {
                 );
 
         verify(userService).save(any());
+    }
+
+    @Test
+    void loginDeveNormalizarEmailERetornarTokenDoUsuarioAutenticado()
+            throws Exception {
+
+        UserDetails principal =
+                org.springframework.security.core.userdetails.User
+                        .withUsername("artur@teste.com")
+                        .password("hash-da-senha")
+                        .roles("USER")
+                        .build();
+
+        Authentication authenticated =
+                new UsernamePasswordAuthenticationToken(
+                        principal,
+                        null,
+                        principal.getAuthorities()
+                );
+
+        when(authenticationManager.authenticate(any(Authentication.class)))
+                .thenReturn(authenticated);
+
+        when(jwtService.generateToken(principal))
+                .thenReturn("token-de-teste");
+
+        mockMvc.perform(
+                        post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "email": "Artur@Teste.COM",
+                                      "password": "Artur123"
+                                    }
+                                    """)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("token-de-teste"));
+
+        ArgumentCaptor<Authentication> captor =
+                ArgumentCaptor.forClass(Authentication.class);
+
+        verify(authenticationManager).authenticate(captor.capture());
+
+        Authentication submitted = captor.getValue();
+
+        assertEquals("artur@teste.com", submitted.getName());
+        assertEquals("Artur123", submitted.getCredentials());
+
+        verify(jwtService).generateToken(principal);
+    }
+
+    @Test
+    void loginComSenhaIncorretaNaoDeveGerarToken() throws Exception {
+        when(authenticationManager.authenticate(any(Authentication.class)))
+                .thenThrow(
+                        new BadCredentialsException("Credenciais inválidas")
+                );
+
+        mockMvc.perform(
+                        post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "email": "artur@teste.com",
+                                      "password": "senha-incorreta"
+                                    }
+                                    """)
+                )
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(jwtService);
     }
 
 
