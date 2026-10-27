@@ -296,7 +296,11 @@ class UserSecurityTest {
         mockMvc.perform(
                 get("/NSS/users/{id}", id)
         )
-                .andExpect(status().isNotFound());
+                .andExpect(status().isNotFound())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Usuário não encontrado")
+                );
 
         verify(adminUserService).getUserById(id);
     }

@@ -2,6 +2,7 @@ package com.example.demo.controller;
 
 import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.response.UserResponse;
+import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.service.AdminUserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -25,9 +26,9 @@ public class AdminUserController {
 
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
-        return adminUserService.getUserById(id)
-                .map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.notFound().build());
+        UserResponse response = adminUserService.getUserById(id)
+                .orElseThrow(UserNotFoundException::new);
+        return ResponseEntity.ok(response);
     }
 
     @PutMapping("/{id}")

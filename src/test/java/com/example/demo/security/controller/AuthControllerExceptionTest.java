@@ -22,6 +22,8 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -159,6 +161,8 @@ public class AuthControllerExceptionTest {
 
     @Test
     void loginComSenhaIncorretaNaoDeveGerarToken() throws Exception {
+
+
         when(authenticationManager.authenticate(any(Authentication.class)))
                 .thenThrow(
                         new BadCredentialsException("Credenciais inválidas")
@@ -174,7 +178,41 @@ public class AuthControllerExceptionTest {
                                     }
                                     """)
                 )
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                        .andExpect(
+                                jsonPath("$.message")
+                                        .value("Email ou senha inválidos"));
+
+        verifyNoInteractions(jwtService);
+    }
+
+    @Test
+    void loginComPrincipalInvalidadoNaoDeveGerarToken() throws Exception {
+        Authentication authenticationResult =
+                new UsernamePasswordAuthenticationToken(
+                        "artur@teste.com",
+                        null,
+                        List.of()
+                );
+
+        when(authenticationManager.authenticate(any(Authentication.class)))
+                .thenReturn(authenticationResult);
+
+        mockMvc.perform(
+                post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                            {
+                              "email": "artur@teste.com",
+                              "password": "Artur123"
+                            }
+                            """)
+        )
+                .andExpect(status().isInternalServerError())
+                .andExpect(
+                        jsonPath("$.message")
+                                .value("Não foi possível realizar o login")
+                );
 
         verifyNoInteractions(jwtService);
     }
