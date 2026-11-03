@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.DTO.mapper.UserMapper;
 import com.example.demo.DTO.request.UserRequest;
 import com.example.demo.DTO.response.UserResponse;
+import com.example.demo.entity.AccountSetupStatus;
 import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
 import com.example.demo.exception.DuplicateEmailException;
@@ -34,6 +35,9 @@ public class UserService {
         user.setEmail(normalizedEmail);
         user.setPassword(passwordEncoder.encode(request.password()));
         user.setRole(Role.USER);
+
+        user.setAtivo(true);
+        user.setSetupStatus(AccountSetupStatus.COMPLETED);
         User savedUser = userRepository.save(user);
         return mapper.toResponse(savedUser);
     }

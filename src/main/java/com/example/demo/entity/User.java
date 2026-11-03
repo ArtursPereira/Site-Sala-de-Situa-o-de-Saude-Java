@@ -39,4 +39,11 @@ public class User {
     @Column(name = "role", nullable = false, length = 20)
     private Role role;
 
+    @Column(name = "ativo", nullable = false)
+    private boolean ativo = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "setup_status", nullable = false, length = 20)
+    private AccountSetupStatus setupStatus = AccountSetupStatus.PENDING;
+
 }

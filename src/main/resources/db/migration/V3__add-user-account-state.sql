@@ -1,0 +1,10 @@
+ALTER TABLE users
+    ADD COLUMN ativo BOOLEAN NOT NULL DEFAULT TRUE,
+    ADD COLUMN setup_status VARCHAR(20) NOT NULL DEFAULT 'COMPLETED';
+
+ALTER TABLE users
+    ADD CONSTRAINT ck_users_setup_status
+        CHECK (setup_status IN ('PENDING', 'COMPLETED'));
+
+ALTER TABLE users
+    ALTER COLUMN setup_status SET DEFAULT 'PENDING';

@@ -14,6 +14,8 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
+    @Mapping(target = "ativo", ignore = true)
+    @Mapping(target = "setupStatus", ignore = true)
     User toEntity(UserRequest userRequest);
 
     UserResponse toResponse(User entity);
