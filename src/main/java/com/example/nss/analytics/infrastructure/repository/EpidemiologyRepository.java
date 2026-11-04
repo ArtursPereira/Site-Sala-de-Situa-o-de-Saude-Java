@@ -31,7 +31,8 @@ public class EpidemiologyRepository {
       EpidemiologyFilter f, Geography geography, List<String> mappedIds) {
     String territory =
         switch (geography) {
-          case REGION, STATE -> "NULL";
+          case REGION -> "CASE WHEN SUBSTRING(f.cd_mun,1,2) IN ('11','12','13','14','15','16','17') THEN 'N' WHEN SUBSTRING(f.cd_mun,1,2) IN ('21','22','23','24','25','26','27','28','29') THEN 'NE' WHEN SUBSTRING(f.cd_mun,1,2) IN ('31','32','33','35') THEN 'SE' WHEN SUBSTRING(f.cd_mun,1,2) IN ('41','42','43') THEN 'S' ELSE 'CO' END";
+          case STATE -> "SUBSTRING(f.cd_mun,1,2)";
           case MUNICIPALITY -> "f.cd_mun";
           case DISTRICT -> "f.notification_district_id";
           case NEIGHBORHOOD -> "f.notification_neighborhood_id";
@@ -45,6 +46,7 @@ public class EpidemiologyRepository {
       sql.append(" AND f.cd_mun = :municipalityCode");
       p.addValue(MUNICIPALITY_PARAMETER, f.municipalityCode());
     }
+    appendAreaFilter(f, geography, sql, p);
     if (geography != Geography.MUNICIPALITY && f.municipalityCode() != null) {
       sql.append(" AND f.cd_mun = :municipalityCode");
       p.addValue(MUNICIPALITY_PARAMETER, f.municipalityCode());
@@ -76,6 +78,7 @@ public class EpidemiologyRepository {
       sql.append(" AND f.cd_mun = :municipalityCode");
       p.addValue(MUNICIPALITY_PARAMETER, f.municipalityCode());
     }
+    appendAreaFilter(f, geography, sql, p);
     if (geography == Geography.NEIGHBORHOOD && f.districtCode() != null) {
       sql.append(" AND f.notification_district_id = :districtCode");
       p.addValue("districtCode", f.districtCode());
@@ -105,7 +108,7 @@ public class EpidemiologyRepository {
           "f.notification_district_id IN (:mappedIds) AND f.notification_territory_status IN ('NOTIFICATION_DISTRICT_ONLY','NOTIFICATION_NEIGHBORHOOD')";
       case NEIGHBORHOOD ->
           "f.notification_neighborhood_id IN (:mappedIds) AND f.notification_territory_status = 'NOTIFICATION_NEIGHBORHOOD'";
-      default -> "FALSE";
+      case REGION, STATE -> "TRUE";
     };
   }
 
@@ -188,6 +191,27 @@ public class EpidemiologyRepository {
       p.addValue("ageBand", f.ageBand());
     }
     return p;
+  }
+
+  private void appendAreaFilter(EpidemiologyFilter f, Geography geography, StringBuilder sql, MapSqlParameterSource p) {
+    if (f.ufCode() != null && geography != Geography.STATE) {
+      sql.append(" AND SUBSTRING(f.cd_mun,1,2) = :ufCode");
+      p.addValue("ufCode", f.ufCode());
+    }
+    if (f.regionCode() != null && geography == Geography.STATE) {
+      sql.append(" AND SUBSTRING(f.cd_mun,1,2) IN (:regionUfs)");
+      p.addValue("regionUfs", regionUfs(f.regionCode()));
+    }
+  }
+
+  private List<String> regionUfs(String region) {
+    return switch (region) {
+      case "N" -> List.of("11", "12", "13", "14", "15", "16", "17");
+      case "NE" -> List.of("21", "22", "23", "24", "25", "26", "27", "28", "29");
+      case "SE" -> List.of("31", "32", "33", "35");
+      case "S" -> List.of("41", "42", "43");
+      default -> List.of("50", "51", "52", "53");
+    };
   }
 
   private static String identifier(String value) {

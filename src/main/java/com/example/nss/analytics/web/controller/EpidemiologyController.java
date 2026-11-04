@@ -17,12 +17,12 @@ public class EpidemiologyController {
 
   @GetMapping("/epidemiology/region")
   public AnalyticsResponse region(@ModelAttribute FilterRequest request) {
-    return service.unavailable(Geography.REGION, request.toFilter());
+    return service.query(Geography.REGION, request.toFilter());
   }
 
   @GetMapping("/epidemiology/state")
   public AnalyticsResponse state(@ModelAttribute FilterRequest request) {
-    return service.unavailable(Geography.STATE, request.toFilter());
+    return service.query(Geography.STATE, request.toFilter());
   }
 
   @GetMapping("/epidemiology/municipalities")
@@ -57,10 +57,16 @@ public class EpidemiologyController {
       String sex,
       String ageBand,
       String municipalityCode,
-      String districtCode) {
+      String districtCode,
+      String ufCode,
+      String regionCode) {
+    public FilterRequest(String disease, Integer year, Integer month, String sex, String ageBand, String municipalityCode, String districtCode) {
+      this(disease, year, month, sex, ageBand, municipalityCode, districtCode, null, null);
+    }
+
     EpidemiologyFilter toFilter() {
       return new EpidemiologyFilter(
-          disease, year, month, sex, ageBand, municipalityCode, districtCode);
+          disease, year, month, sex, ageBand, municipalityCode, districtCode, ufCode, regionCode);
     }
   }
 

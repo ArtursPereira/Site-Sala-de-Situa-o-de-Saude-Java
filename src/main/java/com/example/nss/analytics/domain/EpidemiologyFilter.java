@@ -11,7 +11,12 @@ public record EpidemiologyFilter(
     String sex,
     String ageBand,
     String municipalityCode,
-    String districtCode) {
+    String districtCode,
+    String ufCode,
+    String regionCode) {
+  public EpidemiologyFilter(String disease, Integer year, Integer month, String sex, String ageBand, String municipalityCode, String districtCode) {
+    this(disease, year, month, sex, ageBand, municipalityCode, districtCode, null, null);
+  }
   public static final List<String> AGE_BANDS =
       List.of(
           "LT1", "01_04", "05_09", "10_14", "15_19", "20_39", "40_59", "60_64", "65_69", "70_74",
@@ -32,5 +37,9 @@ public record EpidemiologyFilter(
       throw new InvalidFilterException("Parâmetro municipalityCode inválido");
     if (districtCode != null && districtCode.isBlank())
       throw new InvalidFilterException("Parâmetro districtCode inválido");
+    if (ufCode != null && !ufCode.matches("\\d{2}"))
+      throw new InvalidFilterException("Parâmetro ufCode inválido");
+    if (regionCode != null && !Set.of("N", "NE", "CO", "SE", "S").contains(regionCode))
+      throw new InvalidFilterException("Parâmetro regionCode inválido");
   }
 }
