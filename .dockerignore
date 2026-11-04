@@ -1,0 +1,10 @@
+.git
+.github
+.mvn/wrapper/maven-wrapper.jar
+target
+documentation
+presentation
+database
+*.md
+.env*
+!.env.example

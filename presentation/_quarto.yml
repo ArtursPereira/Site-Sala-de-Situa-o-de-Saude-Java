@@ -1,0 +1,25 @@
+project:
+  type: default
+
+format:
+  revealjs:
+    theme: [simple, styles/nss.scss]
+    slide-number: c/t
+    show-slide-number: all
+    transition: fade
+    navigation-mode: linear
+    menu:
+      side: left
+      numbers: true
+    controls: true
+    progress: true
+    center: false
+    width: 1600
+    height: 900
+    margin: 0.06
+    footer: "NSS — V1 | Núcleo de Situação de Saúde"
+
+execute:
+  freeze: auto
+
+editor: source

@@ -1,0 +1,878 @@
+---
+title: "NSS V1"
+subtitle: "Núcleo de Situação de Saúde"
+author:
+  - "Estagiários:"
+  - "Zadoque Carneiro"
+  - "Gabriel Costa"
+  - "Artur Pereira"
+  - "Luiz Gabriel"
+date: "2026-10-08"
+format: revealjs
+---
+
+## Como chegamos à V1
+
+Uma visão integrada do problema, dos dados, da engenharia e da aplicação.
+
+::: {.pipeline-flow}
+SINAN/PySUS + CNES → Pipeline Python → PostgreSQL → API Java → Front-end geográfico
+:::
+
+## Sumário
+
+1. Problema e objetivo
+2. Arquitetura do sistema
+3. Equipe necessária em teoria
+4. Dados e evolução dos Parquet
+5. CNES e classificação territorial
+6. Backend, segurança e front-end
+7. Desafios, validações e resultados
+8. Limitações e próximos passos
+
+## 1. Problema e objetivo
+
+### O desafio
+
+- Transformar notificações epidemiológicas heterogêneas em informação territorial utilizável.
+- Permitir filtros por doença, ano, mês, sexo e faixa etária.
+- Mostrar onde a notificação está mapeada e onde ainda não está.
+- Preservar rastreabilidade: fonte, transformação, publicação e consulta.
+
+### Escopo da V1
+
+- Quatro municípios do norte/noroeste fluminense.
+- Drill-down intramunicipal para Campos dos Goytacazes.
+- Municípios, distritos e bairros/localidades da unidade notificadora.
+- Métrica apresentada como **notificações**, sem presumir automaticamente “casos confirmados”.
+
+## 2. Arquitetura geral
+
+```text
+SINAN / PySUS
+      ↓
+Bronze: preservação da fonte
+      ↓
+Silver: limpeza, tipagem, ano e deduplicação
+      ↓
+Gold Serving: agregação + CNES + território
+      ↓
+PostgreSQL analítico
+      ↓
+API Java / Spring Boot
+      ↓
+Front-end React + mapa
+```
+
+::: {.callout}
+A separação em camadas permitiu corrigir regras sem baixar novamente todos os dados e permitiu comparar cada estágio.
+:::
+
+## Máquina de estados — entrada e atualização {.state-machine-slide}
+
+```{mermaid}
+%%{init: {'themeVariables': {'fontSize': '30px'}, 'state': {'padding': 16, 'rankSpacing': 35}}}%%
+stateDiagram-v2
+    direction LR
+    [*] --> Entrada
+    Entrada --> Inspecao: update_sinan
+    Entrada --> Carga: run_load manual
+    Inspecao --> UNCHANGED: tamanho igual
+    Inspecao --> Download: mudou ou desconhecido
+    Download --> Carga: bytes conferem
+    Download --> Falha: erro
+    Carga --> UPDATED: commit concluído
+    Carga --> Falha: etapa rejeitada
+    UPDATED --> [*]
+    UNCHANGED --> [*]
+```
+
+## Entrada e atualização — regras e limites
+
+Cada execução trata um recorte **doença × ano**. Os estados representam o fluxo do código; não são uma tabela de estados persistida.
+
+- O manifesto só registra `UPDATED` depois de `run_load` concluir.
+- A comparação usa **tamanho em bytes**, não hash: uma mudança de conteúdo com tamanho igual pode passar despercebida.
+- Uma exceção interrompe o laço de atualização; não existe retomada automática por estado dentro da execução.
+
+::: {.small}
+Código analisado: `update_sinan.py`, `sinan/source.py` e `run_load.py`.
+:::
+
+## Máquina de estados — CNES como pré-condição {.state-machine-slide}
+
+```{mermaid}
+%%{init: {'themeVariables': {'fontSize': '30px'}, 'state': {'padding': 16, 'rankSpacing': 35}}}%%
+stateDiagram-v2
+    direction LR
+    [*] --> Consulta: run_cnes
+    Consulta --> BronzeCNES: dados recebidos
+    Consulta --> Falha: vazio ou erro
+    BronzeCNES --> Normalizacao
+    Normalizacao --> Territorio: Campos
+    Normalizacao --> Indisponivel: outros municípios
+    Territorio --> Snapshot: consolida
+    Indisponivel --> Snapshot: consolida
+    Snapshot --> Serving: verifica snapshot
+    Serving --> Agregacao: válido
+    Serving --> Bloqueada: ausente ou inválido
+```
+
+## CNES — regras para liberar a agregação
+
+- A consolidação reúne os municípios e deduplica por `cd_unidade` antes de gravar o snapshot.
+- A ingestão CNES é independente; `run_load` não a executa automaticamente.
+- Campos usa as coordenadas da unidade e os polígonos territoriais. Ausência de vínculo permanece explícita.
+- A Gold Serving exige CNES por padrão. O snapshot deve estar **no mesmo volume de dados** da carga SINAN.
+
+::: {.small}
+Código analisado: `run_cnes.py`, `cnes/silver.py`, `territory_mapping.py` e `sinan/gold.py`. `Serving` representa a verificação do snapshot mais recente antes da agregação.
+:::
+
+## 3. Equipe necessária em teoria
+
+O NSS envolve **4 estagiários**, mas o processo completo reúne **13
+responsabilidades profissionais**. Esses números não significam 13 pessoas
+obrigatórias: em uma equipe pequena, cada estagiário acumula mais de uma frente.
+
+| Frente/cargo técnico | Responsabilidade no NSS | Entrega principal |
+|---|---|---|
+| Product manager / Product Owner | Priorizar problemas, escopo, backlog e critérios de aceite | Roadmap e decisões de produto |
+| UX researcher | Investigar usuários, tarefas, contexto e usabilidade | Entrevistas, testes e evidências de uso |
+| UX / interaction designer | Projetar fluxos, arquitetura da informação e interação | Jornadas, wireframes e protótipos |
+| UI / visual designer | Definir hierarquia visual, componentes, tipografia e identidade | Design system e telas de alta fidelidade |
+| Content / accessibility designer | Escrever rótulos, mensagens, legendas e garantir acessibilidade | Conteúdo compreensível e inclusivo |
+| Desenvolvedor frontend | Implementar a aplicação web, estado, filtros e integração com a API | Interface React e comportamento do mapa |
+| Desenvolvedor backend | Implementar contratos, consultas, autenticação e autorização | API Java e regras de segurança |
+| Engenheiro de dados | Baixar, versionar, limpar e transformar SINAN/PySUS | Bronze, Silver e execução da pipeline |
+| Engenheiro de analytics / qualidade | Comparar volumes, schemas, duplicidades e Gold | Matriz de validação e alertas |
+| Engenheiro GIS / territorial | Relacionar `ID_UNIDADE`, CNES, municípios, distritos e bairros | Catálogo territorial e mapeamento |
+| QA / SDET | Testar fluxos, contratos, regressões e cenários E2E | Playwright, evidências e critérios de liberação |
+| DevOps / SRE | Operar PostgreSQL, containers, Caddy, NixOS, backups e observabilidade | Deploy reproduzível e operação do servidor |
+| AppSec / segurança de aplicações | Revisar ameaças, segredos, sessões, dependências e hardening | Controles de segurança e resposta a incidentes |
+
+## Como os quatro estagiários cobrem o processo
+
+```text
+4 estagiários
+      ↓ acumulam responsabilidades
+13 responsabilidades profissionais
+      ↓ colaboram entre si
+Pipeline + banco + API + mapa + operação
+```
+
+O trabalho não é uma sequência isolada. Uma decisão de produto orienta a UX; a
+UX orienta frontend e conteúdo; a pipeline define o que chega ao banco; o
+backend transforma isso em contratos de consulta; infraestrutura mantém o
+serviço disponível; e QA/AppSec verificam se o resultado pode ser liberado com
+segurança.
+
+### O que a pesquisa acrescentou ao modelo
+
+“Frontend” não é sinônimo de UX: pesquisa, interação, visual, conteúdo e
+acessibilidade são competências diferentes, embora possam ser acumuladas por
+uma pessoa. Da mesma forma, “backend” não substitui engenharia de dados,
+qualidade, segurança ou operação.
+
+::: {.small}
+Referências: [Atlassian — Agile teams](https://www.atlassian.com/agile/teams), [Atlassian — DevOps engineer](https://www.atlassian.com/devops/what-is-devops/devops-engineer), [Nielsen Norman Group — UX roles and responsibilities](https://www.nngroup.com/articles/ux-roles-responsibilities/) e [Nielsen Norman Group — UX specializations](https://www.nngroup.com/articles/return-ux-generalist/).
+:::
+
+::: {.small}
+“Cargo” aqui significa uma responsabilidade necessária no processo, não um vínculo trabalhista nem uma atribuição nominal fixa entre Zadoque Carneiro, Gabriel Costa, Artur Pereira e Luiz Gabriel.
+:::
+
+## 4. O que realmente veio nos Parquet
+
+### Estado analisado
+
+| Doença | Anos observados | Bronze | Silver | Gold Serving |
+|---|---:|---:|---:|---:|
+| Dengue (`DENG`) | 2023–2026 | 4 | 4 | 4 |
+| Chikungunya (`CHIK`) | 2023–2026 | 4 | 4 | 4 |
+| Zika (`ZIKA`) | 2023–2026 | 4 | 4 | 4 |
+| Febre maculosa (`FMAC`) | 2023–2026 | 4 | 4 | 4 |
+| Toxoplasmose congênita (`TOXC`) | 2023–2026 | 4 | 4 | 4 |
+| Toxoplasmose gestacional (`TOXG`) | 2023–2026 | 4 | 4 | 4 |
+
+::: {.small}
+Total observado: 24 combinações doença–ano, em três camadas de dados.
+:::
+
+## Diversidade de volume por ano
+
+| Doença | 2023 | 2024 | 2025 | 2026 |
+|---|---:|---:|---:|---:|
+| DENG | 1.645.956 | 6.564.924 | 1.643.215 | 465.323 |
+| CHIK | 266.442 | 426.214 | 253.753 | 131.830 |
+| ZIKA | 36.003 | 43.312 | 25.764 | 12.971 |
+| FMAC | 17.942 | 9.962 | 11.010 | 3.131 |
+| TOXC | 6.600 | 7.403 | 7.279 | 597 |
+| TOXG | 15.023 | 15.392 | 14.818 | 1.134 |
+
+::: {.small}
+Valores: número de linhas nos Parquet Bronze analisados. O volume não é o mesmo que o número de grupos da Gold.
+:::
+
+## A primeira complexidade: não existe um schema SINAN universal
+
+Nos arquivos observados, a estrutura Bronze variou por ficha/doença:
+
+| Ficha | Colunas Bronze | Característica dominante |
+|---|---:|---|
+| DENG | 121 | sintomas, alarmes e investigação de arboviroses |
+| CHIK | 122 | campos específicos de Chikungunya e arboviroses |
+| FMAC | 95 | exposição ambiental, animais e investigação laboratorial |
+| ZIKA/TOXC/TOXG | 38 | conjunto reduzido e campos próprios de cada notificação |
+
+O conjunto comum entre as doenças mais recentes tinha apenas 34 colunas.
+
+::: {.callout}
+Generalizar não significa tratar todos os campos como se fossem equivalentes. Significa definir um núcleo comum pequeno e preservar extensões específicas.
+:::
+
+## A segunda complexidade: a estabilidade é local, não global
+
+O diagnóstico dos Parquet mostrou:
+
+- Dentro de cada doença observada, o schema se manteve estável entre os anos disponíveis.
+- Entre doenças, o schema muda substancialmente.
+- Os nomes semelhantes não garantem a mesma semântica.
+- A aplicação precisa funcionar mesmo quando uma ficha não possui o campo de outra.
+- A ausência de um campo deve ser diferente de um campo existente com valor vazio.
+
+### Decisão de engenharia
+
+```text
+Schema da fonte
+      ↓
+Catálogo declarativo de campos
+      ↓
+Núcleo Silver canônico
+      ↓
+Gold comum para consumo
+      + campos opcionais específicos
+```
+
+## O catálogo não resolve sozinho o dicionário
+
+O catálogo centraliza nomes e transformações, mas não elimina ambiguidades do SINAN.
+
+```python
+"classificacao_final" → "CLASSI_FIN"
+"unidade_notificacao" → "ID_UNIDADE"
+"idade_sinan"         → "NU_IDADE_N"
+"tipo_idade"          → "TP_IDADE"
+```
+
+Nos arquivos analisados:
+
+- `CLASSI_FIN` aparece como texto e precisa de interpretação por ficha/ano.
+- `NU_NOTIFIC` não estava presente nos Parquet observados.
+- `TP_IDADE` também não estava presente nos Parquet observados.
+- `NDUPLIC_N` estava presente, mas majoritariamente vazio.
+
+## Deduplicação: o que foi possível fazer
+
+### Estratégia implementada
+
+1. Usar `NU_NOTIFIC` quando a fonte fornece a chave primária.
+2. Quando a chave não existe, usar fallback por correspondência exata das colunas disponíveis.
+3. Emitir aviso porque duas notificações distintas, mas idênticas nos campos capturados, podem colapsar.
+4. Registrar a redução Bronze → Silver.
+
+### Evidência nos dados
+
+| Recorte | Bronze | Silver | Redução |
+|---|---:|---:|---:|
+| DENG 2023 | 1.645.956 | 1.587.853 | 58.103 |
+| DENG 2024 | 6.564.924 | 6.179.051 | 385.873 |
+| DENG 2025 | 1.643.215 | 1.584.214 | 59.001 |
+| DENG 2026 | 465.323 | 457.452 | 7.871 |
+
+::: {.small}
+A redução combina filtro pela data de notificação e deduplicação; não deve ser interpretada automaticamente como “duplicatas removidas”.
+:::
+
+## A terceira complexidade: `NDUPLIC_N` não é uma chave universal
+
+Nos arquivos Dengue analisados:
+
+- DENG 2023: 1.643.679 de 1.645.956 linhas sem valor útil em `NDUPLIC_N` (99,86%).
+- DENG 2024: 6.414.581 de 6.564.924 linhas sem valor útil em `NDUPLIC_N` (97,71%).
+- DENG 2025: 1.604.338 de 1.643.215 linhas sem valor útil em `NDUPLIC_N` (97,63%).
+- DENG 2026: 443.716 de 465.323 linhas sem valor útil em `NDUPLIC_N` (95,36%).
+- Os códigos presentes variam e não substituem uma chave estável de notificação.
+
+### Consequência
+
+Não foi seguro deduplicar apenas pelo campo de duplicidade. A pipeline precisa tratar:
+
+- chave primária quando existe;
+- fallback explicitamente sinalizado;
+- métricas por fonte, doença e ano;
+- revisão futura do contrato com um identificador confiável.
+
+## `NDUPLIC_N` em todas as doenças
+
+| Doença | 2023 | 2024 | 2025 | 2026 |
+|---|---:|---:|---:|---:|
+| DENG | 99,86% | 97,71% | 97,63% | 95,36% |
+| CHIK | 99,97% | 94,45% | 97,49% | 99,23% |
+| ZIKA | 63,03% | 87,16% | 95,01% | 98,22% |
+| FMAC | Coluna inexistente | Coluna inexistente | Coluna inexistente | Coluna inexistente |
+| TOXC | 100,00% | 100,00% | 100,00% | 100,00% |
+| TOXG | 100,00% | 100,00% | 100,00% | 100,00% |
+
+::: {.small}
+Percentual de linhas sem valor útil em `NDUPLIC_N`; “Coluna inexistente” indica
+que o campo não existe no schema Bronze daquele recorte.
+:::
+
+## O que a comparação entre doenças revela
+
+- **DENG e CHIK:** o campo existe, mas permanece vazio em pelo menos 94,45% das linhas.
+- **ZIKA:** apresenta maior cobertura relativa em 2023, mas a ausência cresce nos anos seguintes.
+- **FMAC:** não oferece `NDUPLIC_N`; não é possível aplicar nem mesmo essa métrica.
+- **TOXC e TOXG:** a coluna existe, porém está 100% vazia em todos os anos observados.
+
+### Decisão de engenharia
+
+`NDUPLIC_N` deve ser tratado como um sinal auxiliar e opcional, nunca como a
+identidade universal da notificação. A deduplicação precisa registrar qual
+estratégia foi usada em cada recorte e manter separadas as situações:
+
+::: {.classification-rule}
+`coluna ausente` &nbsp; ≠ &nbsp; `coluna presente e vazia` &nbsp; ≠ &nbsp; `valor útil disponível`
+:::
+
+## A quarta complexidade: idade codificada
+
+Nos Parquet observados, `NU_IDADE_N` aparecia com códigos como:
+
+```text
+4023 → unidade 4, valor 023 → 23 anos
+3023 → unidade 3, valor 023 → 23 meses
+2023 → unidade 2, valor 023 → 23 dias
+```
+
+O primeiro dígito representa a unidade; os demais representam o valor.
+
+Como `TP_IDADE` não apareceu nos arquivos analisados, a pipeline precisa:
+
+- interpretar o código composto quando disponível;
+- usar `TP_IDADE` se um layout futuro o fornecer separadamente;
+- usar ano de nascimento apenas como fallback controlado;
+- nunca tratar o número 10 isoladamente como se fosse sempre 10 anos.
+
+## `CLASSI_FIN`: mesmo nome, semântica a validar
+
+O campo aparece em fichas distintas, mas não deve ser tratado como um dicionário universal sem validação.
+
+Exemplo observado em DENG:
+
+| Ano | Valores não vazios observados |
+|---|---|
+| 2023 | `10`, `8`, `11`, `0`, `12` |
+| 2024 | `10`, `8`, `11`, `12` |
+| 2025 | `0`, `10`, `11`, `12`, `8` |
+| 2026 | `0`, `10`, `11`, `12`, `8` |
+
+### Dengue: leitura dos códigos observados
+
+| Código | Semântica na documentação oficial consultada | Situação nos Parquet DENG |
+|---:|---|---|
+| `10` | Dengue | Validado |
+| `8` | Não aparece na tabela oficial do formulário Dengue/Chikungunya consultada | Código observado; semântica pendente |
+| `11` | Dengue com sinais de alarme | Validado |
+| `0` | Não aparece na tabela oficial do formulário Dengue/Chikungunya consultada | Código observado; semântica pendente |
+| `12` | Dengue grave | Validado |
+
+Em 2023, portanto, `10`, `11` e `12` podem ser lidos conforme a tabela do
+Sinan Online; `0` e `8` não podem ser convertidos por inferência de frequência.
+Em 2024 não há `0`, mas a presença de `8` continua exigindo a identificação da
+versão/layout de origem. O código não pode ser apresentado como “confirmado” sem
+essa validação.
+
+::: {.small}
+Fonte primária: Ministério da Saúde, *Dicionário de Dados — SINAN Net — versão 5.0*, revisão de novembro de 2018. O Anexo I lista `5=Descartado`, `10=Dengue`, `11=Dengue com sinais de alarme`, `12=Dengue grave` e `13=Chikungunya`.
+:::
+
+## `CLASSI_FIN` — Dengue (DENG)
+
+| Código observado | Leitura |
+|---:|---|
+| `0` | Não consta na tabela oficial de Dengue/Chikungunya consultada; pendente |
+| `8` | Não consta na tabela oficial de Dengue/Chikungunya consultada; pendente |
+| `10` | **Dengue** — documentado |
+| `11` | **Dengue com sinais de alarme** — documentado |
+| `12` | **Dengue grave** — documentado |
+
+Os códigos foram observados nos Parquet de 2023, 2024, 2025 e 2026. Apenas
+`10`, `11` e `12` têm correspondência direta na tabela do Sinan Online.
+
+::: {.small}
+Fato: a tabela oficial não lista `0` nem `8` para Dengue. Hipótese não autorizada: interpretar esses valores por frequência ou por uma tabela de outro agravo.
+:::
+
+## `CLASSI_FIN` — Chikungunya (CHIK)
+
+| Código observado | Leitura |
+|---:|---|
+| `0` | Não consta na tabela oficial consultada; pendente |
+| `5` | **Descartado** — documentado |
+| `8` | Não consta na tabela oficial Dengue/Chikungunya consultada; pendente |
+| `13` | **Chikungunya** — documentado |
+
+Chikungunya compartilha o formulário do Sinan Online com Dengue, mas sua
+classificação não deve ser comparada diretamente ao padrão `1/2/8` do Sinan Net.
+
+::: {.small}
+Fato: `5` e `13` são categorias documentadas. Hipótese pendente: atribuir um significado a `0` ou `8` sem identificar a versão do exportador.
+:::
+
+## `CLASSI_FIN` — Zika (ZIKA)
+
+| Código observado | Leitura |
+|---:|---|
+| `0` | Sem correspondência validada no dicionário consultado |
+| `1` | Compatível com **Confirmado** no padrão geral do Sinan Net |
+| `2` | Compatível com **Descartado** no padrão geral do Sinan Net |
+| `8` | Compatível com **Inconclusivo** no padrão geral do Sinan Net |
+
+O portal do SINAN disponibiliza instrumentos próprios para Zika, mas o arquivo
+geral não prova que a mesma tabela foi aplicada a todos os layouts e anos.
+
+::: {.small}
+Fato: os códigos aparecem no Parquet. Hipótese controlada: `1/2/8` seguem o padrão geral do Sinan Net; falta confirmar o dicionário específico do layout Zika usado na extração.
+:::
+
+## `CLASSI_FIN` — Febre Maculosa (FMAC)
+
+| Código observado | Leitura |
+|---:|---|
+| `1` | **Confirmado** — documentado no dicionário específico |
+| `2` | **Descartado** — documentado no dicionário específico |
+| `8` | **Inconclusivo** no anexo geral; validar no layout específico |
+
+FMAC expõe diretamente a diferença entre o dicionário específico e o Anexo I
+geral: a interpretação de `8` depende da versão efetivamente exportada.
+
+::: {.small}
+Fato: `1` e `2` estão documentados para FMAC. Hipótese pendente: usar `8=Inconclusivo` sem conferir a versão específica do arquivo.
+:::
+
+## `CLASSI_FIN` — Toxoplasmose Congênita (TOXC)
+
+| Código observado | Leitura |
+|---:|---|
+| `1` | Compatível com **Confirmado** no padrão geral do Sinan Net |
+| `2` | Compatível com **Descartado** no padrão geral do Sinan Net |
+| `8` | Compatível com **Inconclusivo** no padrão geral do Sinan Net |
+
+Os três códigos aparecem nos quatro anos analisados, mas a apresentação não os
+transforma em categorias oficiais sem o dicionário específico da ficha.
+
+::: {.small}
+Fato: `1`, `2` e `8` estão presentes nos dados. Hipótese: TOXC usa o padrão geral do Sinan Net; validação específica ainda necessária.
+:::
+
+## `CLASSI_FIN` — Toxoplasmose Gestacional (TOXG)
+
+| Código observado | Leitura |
+|---:|---|
+| `1` | Compatível com **Confirmado** no padrão geral do Sinan Net |
+| `2` | Compatível com **Descartado** no padrão geral do Sinan Net |
+| `8` | Compatível com **Inconclusivo** no padrão geral do Sinan Net |
+
+TOXG apresenta o mesmo conjunto de códigos observado em TOXC, mas isso não
+prova que as fichas tenham o mesmo dicionário semântico.
+
+::: {.small}
+Fato: `1`, `2` e `8` estão presentes nos dados. Hipótese: TOXG usa o padrão geral do Sinan Net; validação específica ainda necessária.
+:::
+
+## Por que há divergências entre os dicionários do SINAN?
+
+Há uma ambiguidade real, não apenas um problema de nomenclatura:
+
+- `CLASSI_FIN` muda de significado conforme a ficha e o agravo.
+- Dengue/Chikungunya usam o Sinan Online; os demais usam o padrão Sinan Net.
+- Os dicionários públicos têm versões e datas diferentes dos Parquet analisados.
+- Conversões históricas não devem ser aplicadas automaticamente a todos os agravos.
+
+Assim, uma busca que retorne “8 = inconclusivo” pode estar correta para uma ficha
+Sinan Net e incorreta para Dengue/Chikungunya. Do mesmo modo, “10 = Dengue” é
+específico do formulário arboviroses e não um código universal.
+
+## Contrato seguro para a V1
+
+```text
+(agravo, sistema, versão da ficha, CLASSI_FIN bruto)
+                                      ↓
+                         rótulo somente se validado
+```
+
+- preservar o valor bruto no Gold;
+- manter o rótulo “código não mapeado — versão pendente” para `0` e `8` de DENG/CHIK;
+- não usar `CLASSI_FIN` para redefinir a métrica pública de notificações;
+- validar TOXC/TOXG com os dicionários específicos antes de transformar códigos em categorias epidemiológicas.
+
+### Decisão para a V1
+
+- A métrica oficial da interface é **notificação**.
+- `CLASSI_FIN` é preservado para análise e auditoria.
+- Não converter silenciosamente “notificação” em “caso confirmado”.
+- Uma regra epidemiológica por doença/ano deve ser formalizada antes de mudar a métrica pública.
+
+::: {.small}
+Fontes consultadas: [Dicionário Dengue/Chikungunya](https://portalsinan.saude.gov.br/images/documentos/Agravos/Dengue/DIC_DADOS_ONLINE.pdf), [Dicionário geral Sinan Net v5](https://portalsinan.saude.gov.br/images/documentos/Agravos/NINDIV/DIC_DADOS_NET_Not_Individual_rev.pdf), [Dicionário Febre Maculosa](https://portalsinan.saude.gov.br/images/documentos/Agravos/Febre%20Maculosa/DIC_DADOS_Febre_Maculosa_v5.pdf) e [nota de transição Dengue/Chikungunya](https://portalsinan.saude.gov.br/images/documentos/Agravos/Dengue/Nota_Informativa_059.pdf).
+:::
+
+## 5. O elo entre SINAN e território: `ID_UNIDADE`
+
+O SINAN não trouxe o bairro diretamente para o modelo territorial da V1.
+
+```text
+SINAN.ID_UNIDADE
+        ↓
+CNES.cd_unidade
+        ↓
+unidade notificadora
+        ↓
+distrito oficial
+        ↓
+bairro/localidade oficial
+```
+
+Isso representa o **território da unidade notificadora**.
+
+Não representa automaticamente:
+
+- residência do paciente;
+- bairro de infecção;
+- local de circulação;
+- geolocalização individual.
+
+## Campos e territórios não são o mesmo problema
+
+O mapeamento exige três decisões diferentes:
+
+1. O código da unidade existe no SINAN?
+2. O código casa com o snapshot CNES?
+3. A unidade está associada a uma geometria territorial oficial?
+
+```text
+sem ID_UNIDADE       → UNMAPPED_NOTIFICATION_UNIT
+ID sem CNES          → UNMAPPED_NOTIFICATION_UNIT
+CNES sem geometria   → cobertura parcial / não mapeada
+CNES + geometria     → distrito e, quando permitido, bairro
+```
+
+## Campos e bairros da V1
+
+### Campos dos Goytacazes
+
+- O município possui navegação intramunicipal.
+- Os distritos são derivados da unidade notificadora e do CNES.
+- O bairro/localidade é mostrado para o nível de detalhe permitido.
+- O catálogo territorial evita transformar ausência de linha em zero.
+
+### Outros municípios
+
+- São usados no ranking municipal.
+- Não recebem automaticamente drill-down de bairros.
+- Ausência de suporte territorial intramunicipal é `UNAVAILABLE`, não zero.
+
+::: {.callout}
+O CNES não “inventa” localização: ele fornece o vínculo institucional necessário para aplicar um catálogo geográfico oficial.
+:::
+
+## 6. Da Silver à Gold
+
+```text
+Silver: 13 colunas canônicas
+      ↓
+filtro dos municípios do escopo
+      ↓
+normalização de sexo, idade e município
+      ↓
+join com snapshot CNES
+      ↓
+classificação territorial
+      ↓
+groupby por dimensões epidemiológicas
+      ↓
+Gold Serving: 24 colunas canônicas
+```
+
+A Gold passa a carregar, entre outros:
+
+- `year`, `month`, `cd_mun`;
+- `sex`, `age_band`;
+- `ID_UNIDADE`;
+- `CLASSI_FIN` e `EVOLUCAO`;
+- `notification_district_id`;
+- `notification_neighborhood_id`;
+- `notification_territory_status`;
+- `cases_total`.
+
+## Máquina de estados — generalizar cada doença e ano {.state-machine-slide}
+
+```{mermaid}
+%%{init: {'themeVariables': {'fontSize': '30px'}, 'state': {'padding': 16, 'rankSpacing': 35}}}%%
+stateDiagram-v2
+    direction LR
+    [*] --> Bronze: fonte não vazia
+    Bronze --> Schema: lote preservado
+    Schema --> Rejeitada: faltam obrigatórios
+    Schema --> Normalizacao: catálogo
+    Normalizacao --> Deduplicacao: chave disponível
+    Normalizacao --> Fallback: sem chave
+    Fallback --> Deduplicacao: campos capturados
+    Deduplicacao --> Silver
+    Silver --> Rejeitada: vazia ou incompatível
+    Silver --> Gold: metadata e CNES válidos
+    Gold --> Validacao: agregados
+```
+
+## Generalização — contratos entre as camadas
+
+A normalização trata tipos, datas válidas e o ano de `DT_NOTIFIC`. A Gold resolve municípios, idade e território antes de agregar.
+
+**Generalização não é aceitar qualquer schema:** a Silver exige seu núcleo obrigatório, mas a Gold também exige sexo, ano de nascimento e semana de notificação. Um campo opcional na Silver pode bloquear a etapa seguinte.
+
+::: {.small}
+Código analisado: `sinan/columns.py`, `sinan/silver.py`, `sinan/gold.py`. O fallback considera as colunas presentes no catálogo, não necessariamente todas as colunas da fonte. `CLASSI_FIN` permanece código bruto.
+:::
+
+## Máquina de estados — publicação no PostgreSQL {.state-machine-slide}
+
+```{mermaid}
+%%{init: {'themeVariables': {'fontSize': '30px'}, 'state': {'padding': 16, 'rankSpacing': 35}}}%%
+stateDiagram-v2
+    direction LR
+    [*] --> Validacao
+    Validacao --> Bloqueada: contrato inválido
+    Validacao --> Transacao: snapshot aceito
+    Transacao --> Bloqueio: lock
+    Bloqueio --> Rollback: origem antiga
+    Bloqueio --> Dimensoes: origem aceita
+    Dimensoes --> Substituicao: upsert
+    Substituicao --> Conferencia: novos fatos
+    Conferencia --> Rollback: divergência
+    Conferencia --> Commit: registra publicação
+    Commit --> [*]
+```
+
+## PostgreSQL — garantias da publicação
+
+A validação confere schema, recorte, território e total. O lock é por doença/ano; a substituição remove o recorte anterior e insere os fatos. A conferência compara dados com a Gold normalizada antes de registrar `pipeline_publications`.
+
+Tudo entre a abertura da transação e o commit é atômico: **qualquer erro reverte as alterações no banco**. Os Parquet já gravados permanecem disponíveis para diagnóstico.
+
+::: {.small}
+Código analisado: `load.py`. O recorte substituído é doença/ano/municípios. Gold vazia exige `allow_empty`; Bronze ou Silver globalmente vazias continuam bloqueadas. O atualizador usa `allow_empty=True` para permitir zero no recorte municipal.
+:::
+
+## Publicar e reprocessar — os caminhos de operação
+
+Com ambiente Python/container configurado, `DATABASE_URL` definido e volume `/data` compartilhado:
+
+```{.bash code-line-numbers="false"}
+alembic upgrade head
+python -m app.pipeline.run_cnes
+python -m app.pipeline.run_load --disease DENG --year 2023
+```
+
+| Caminho | Resultado e condição |
+|---|---|
+| `run.py` | Bronze → Silver → Gold `ad_hoc`; não publica no banco |
+| `run_load.py` | Gold `serving` e substituição transacional do recorte |
+| `update_sinan.py` | Decide por tamanho/cache/manifesto e chama `run_load` |
+| `reprocess_serving.py` | Reutiliza Silver; exige banco, origem e total esperados; publica somente com `--publish` |
+
+**Limite da validação atual:** em `run_load`, o total esperado vem da própria Gold. A conferência PostgreSQL ↔ Gold existe, mas falta uma contagem independente Silver ↔ Gold nesse caminho.
+
+::: {.small}
+Reprocessamento: o padrão é simulação, mas gera Gold `ad_hoc`. Com `--publish`, o commit precede a cópia para `serving`: banco e arquivos não compartilham a mesma transação. Fontes: `run.py`, `run_load.py`, `load.py`, `reprocess_serving.py` e migrations Alembic. Diagramas derivados da leitura do código local.
+:::
+
+## 7. Backend Java e segurança
+
+- API REST sob `/api/v1`.
+- Autenticação com JWT de acesso.
+- Refresh token em cookie HttpOnly.
+- Rotas públicas e protegidas separadas.
+- Validação de filtros antes da consulta.
+- PostgreSQL analítico como fonte de leitura.
+- Respostas com cobertura `AVAILABLE`, `UNAVAILABLE` e `PARTIAL`.
+
+O Java evita que o front-end precise acessar Parquet, PySUS ou PostgreSQL diretamente.
+
+## 8. Front-end e experiência de análise
+
+- Mapa territorial interativo.
+- Ranking municipal.
+- Drill-down controlado para Campos.
+- Filtros por doença, ano, mês, sexo e faixa etária.
+- Estado visual para dados sem cobertura.
+- Separação entre zero real e ausência de informação.
+- Modo mock para desenvolvimento e fonte API para integração.
+
+## 9. Desafios encontrados
+
+### Dados
+
+- Schemas específicos por doença.
+- Dicionário sem reconciliação completa entre fichas.
+- Chaves de notificação ausentes nos arquivos observados.
+- Campos de duplicidade incompletos.
+- Idade codificada e tipos separados em layouts diferentes.
+- `CLASSI_FIN` exige interpretação epidemiológica por doença.
+
+### Integração
+
+- CNES tem ciclo de atualização próprio.
+- Snapshot CNES precisa existir antes da publicação territorial.
+- `NaN` textual não pode ser confundido com nulo.
+- Gold e PostgreSQL precisam reproduzir o mesmo contrato.
+
+### Produto
+
+- Usuário precisa saber quando um valor é zero.
+- Usuário precisa saber quando o território não está coberto.
+- O mapa não pode sugerir precisão maior que a fonte permite.
+
+## 10. O que foi validado
+
+- Camadas Bronze, Silver e Gold presentes para as combinações observadas.
+- Fluxo de transformação reprocessável.
+- Normalização comum reduzida a um contrato consumível.
+- Mapeamento baseado em `ID_UNIDADE` + CNES.
+- Controle de cobertura territorial.
+- API protegida e integrada ao front-end.
+- Correções de navegação territorial e experiência do mapa.
+
+## O que ainda exige cuidado
+
+- Não declarar um dicionário SINAN universal quando a fonte não o fornece.
+- Não chamar automaticamente todas as notificações de casos confirmados.
+- Não usar ausência de bairro como bairro desconhecido geográfico.
+- Não afirmar que a Gold representa todos os campos da ficha original.
+- Não esconder a redução Bronze → Silver atrás de um número agregado.
+
+## 11. Resultado da V1
+
+### O que entregamos
+
+- Uma cadeia completa da fonte à visualização.
+- Um contrato canônico para dados heterogêneos.
+- Uma estratégia explícita de deduplicação e suas limitações.
+- Um mapeamento territorial auditável por unidade notificadora.
+- Um front-end capaz de apresentar filtros e cobertura.
+- Uma base para evolução sem acoplar o produto a um único layout SINAN.
+
+## Próximos passos
+
+1. Reproduzir a carga atual da V1 em ambiente limpo e documentar os comandos operacionais.
+2. Fixar e versionar os dicionários já utilizados para as doenças e anos publicados.
+3. Executar testes de contrato e regressão para os filtros, endpoints, mapa e ranking existentes.
+4. Conferir a equivalência Bronze → Silver → Gold → PostgreSQL antes de cada publicação.
+5. Consolidar a deduplicação atual e registrar explicitamente suas limitações.
+6. Manter a ingestão atual e o snapshot CNES operacionais, com logs, falhas detectáveis e reprocessamento seguro.
+7. Versionar relatórios de qualidade, backups e artefatos de cada publicação da V1.
+8. Corrigir somente falhas de segurança, desempenho, acessibilidade e usabilidade dentro do escopo atual.
+
+## Responsabilidade compartilhada de segurança
+
+### Proteção fornecida pela GINFO
+
+- Proxy reverso para exposição externa.
+- Firewall Palo Alto NGFW.
+- IDS/IPS e filtragem de tráfego.
+- Filtragem por país.
+- VLAN e zona específica na DMZ.
+- Isolamento do servidor em relação à rede interna.
+- Possibilidade de VPN para acesso remoto administrativo.
+
+## Responsabilidade do projeto NSS
+
+- Corrigir vulnerabilidades da aplicação.
+- Manter Java, bibliotecas e imagens atualizados.
+- Usar credenciais e segredos fora do Git.
+- Aplicar autenticação e autorização por rota.
+- Proteger cookies, tokens e sessões.
+- Validar entradas e filtros.
+- Aplicar limites de recursos nos containers.
+- Manter backups, logs e auditoria.
+- Restringir Grafana e Prometheus ao túnel administrativo/VPN.
+
+::: {.callout}
+O firewall reduz significativamente a superfície de ataque, mas não substitui hardening, autenticação, atualização de dependências e correções no código da aplicação.
+:::
+
+## Melhorias necessárias na Pipeline e no Java
+
+As próximas melhorias devem consolidar a V1 no processamento dos dados e na
+camada de serviço, sem aumentar o escopo funcional atual.
+
+## Melhorias necessárias na Pipeline
+
+1. Tornar a ingestão idempotente, com reprocessamento seguro e logs por doença e ano.
+2. Validar automaticamente Bronze → Silver → Gold → PostgreSQL antes da publicação.
+3. Versionar os dicionários por agravo, ano e versão do SINAN.
+4. Preservar `CLASSI_FIN` bruto e aplicar rótulos somente quando a semântica estiver validada.
+5. Melhorar a deduplicação usando a chave da fonte quando disponível e registrar a estratégia usada.
+6. Consolidar a interpretação de idade com unidade, incluindo `TP_IDADE` quando o layout fornecer o campo.
+7. Automatizar e auditar a atualização do snapshot CNES usado no mapeamento territorial.
+
+## Melhorias necessárias no Java
+
+1. Criar testes de contrato para os endpoints, filtros, ranking e agregações já existentes.
+2. Padronizar respostas de erro, códigos HTTP e mensagens sem expor detalhes internos.
+3. Melhorar logs, métricas e rastreabilidade das consultas sem registrar tokens ou dados sensíveis.
+4. Validar limites, combinações e ausência de parâmetros dos filtros antes da consulta ao banco.
+5. Revisar desempenho das consultas analíticas e o tratamento de paginação/agregação quando aplicável.
+6. Consolidar autenticação, refresh, recuperação de senha e autorização por permissão.
+7. Manter dependências, configuração de segurança e contratos dos DTOs versionados e testados.
+
+## Conclusão
+
+### A V1 não foi apenas uma tela
+
+Foi a construção de um caminho confiável entre:
+
+::: {.conclusion-flow}
+<div class="flow-step">um dado epidemiológico heterogêneo</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-step">uma transformação rastreável</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-step">um território interpretável</div>
+<div class="flow-arrow">↓</div>
+<div class="flow-step">uma decisão visualizável</div>
+:::
+
+::: {.callout}
+O principal resultado foi transformar as incertezas da fonte em estados explícitos do sistema, em vez de escondê-las atrás de números aparentemente precisos.
+:::
+
+## Referências — repositórios
+
+- [NSS-pipeline](https://github.com/Zadoque/NSS-pipeline) — ingestão, transformação e serving.
+- [Site-Sala-de-Situação-de-Saúde-Java](https://github.com/Zadoque/Site-Sala-de-Situa-o-de-Saude-Java) — API, segurança e backend.
+- [NSS-front-end](https://github.com/Zadoque/NSS-front-end) — interface, filtros, ranking e mapas.
+- [NSS-deployment](https://github.com/Zadoque/NSS-deployment) — Compose, Caddy e operação dos serviços.
+- [nss-NixOS-Configuration](https://github.com/Zadoque/nss-NixOS-Configuration) — configuração declarativa do servidor.
+
+## Referências — fontes do SINAN
+
+- [SINAN — Notificações e instrumentos de registro](https://portalsinan.saude.gov.br/notificacoes).
+- [Dicionário de Dados SINAN Net — versão 5.0](https://portalsinan.saude.gov.br/images/documentos/Agravos/NINDIV/DIC_DADOS_NET_Not_Individual_rev.pdf).
+- [Dicionário Dengue/Chikungunya — Sinan Online](https://portalsinan.saude.gov.br/images/documentos/Agravos/Dengue/DIC_DADOS_ONLINE.pdf).
+- [Dicionário de Dados — Febre Maculosa](https://portalsinan.saude.gov.br/images/documentos/Agravos/Febre%20Maculosa/DIC_DADOS_Febre_Maculosa_v5.pdf).
+- [Página do SINAN para Zika](https://portalsinan.saude.gov.br/zika).
+
+::: {.tiny}
+Fontes e repositórios consultados em 08/10/2026.
+:::

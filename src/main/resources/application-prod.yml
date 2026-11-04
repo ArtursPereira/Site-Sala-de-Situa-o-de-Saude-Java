@@ -1,0 +1,7 @@
+jwt:
+  # A production process must never silently fall back to the development key.
+  secret: ${JWT_SECRET}
+
+api:
+  auth:
+    secure-cookie: true

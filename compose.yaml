@@ -5,7 +5,7 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_DB: ${DB_NAME:-sala_saude}
+      POSTGRES_DB: ${DB_NAME:-nss}
       POSTGRES_USER: ${DB_USER:-appuser}
       POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
     volumes:
@@ -22,52 +22,59 @@ services:
       start_period: 30s
     restart: unless-stopped
 
-  analytics-db:
-    image: postgres:16-alpine
-    container_name: analytics-postgres
-    ports:
-      - "5433:5432"
-    environment:
-      POSTGRES_DB: ${ANALYTICS_DB_NAME:-analytics_db}
-      POSTGRES_USER: ${ANALYTICS_DB_USER:-analytics_user}
-      POSTGRES_PASSWORD: ${ANALYTICS_DB_PASSWORD:?ANALYTICS_DB_PASSWORD must be set}
-    volumes:
-      - analytics_pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
-    restart: unless-stopped
-
   app:
     build: .
     container_name: spring-boot-app
+    env_file:
+      - .env.local
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME:-sala_saude}
+      SPRING_DOCKER_COMPOSE_ENABLED: "false"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/${DB_NAME:-nss}
       SPRING_DATASOURCE_USERNAME: ${DB_USER:-appuser}
       SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set}
-      ANALYTICS_DATASOURCE_URL: jdbc:postgresql://analytics-db:5432/${ANALYTICS_DB_NAME:-analytics_db}
-      ANALYTICS_DATASOURCE_USERNAME: ${ANALYTICS_DB_USER:-analytics_user}
-      ANALYTICS_DATASOURCE_PASSWORD: ${ANALYTICS_DB_PASSWORD:?ANALYTICS_DB_PASSWORD must be set}
+      # The analytics database belongs to the pipeline, not this Compose DB.
+      ANALYTICS_DATASOURCE_URL: ${ANALYTICS_DATASOURCE_URL:-jdbc:postgresql://host.docker.internal:5432/situacao_saude}
+      ANALYTICS_DATASOURCE_USERNAME: ${ANALYTICS_DATASOURCE_USERNAME:-${DB_USER:-appuser}}
+      ANALYTICS_DATASOURCE_PASSWORD: ${ANALYTICS_DATASOURCE_PASSWORD:-${DB_PASSWORD}}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
       SPRING_PROFILES_ACTIVE: dev
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
+      MAIL_HOST: ${MAIL_HOST:-mailpit}
+      MAIL_PORT: ${MAIL_PORT:-1025}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-noreply@localhost}
+      MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
+      MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
     depends_on:
       db:
         condition: service_healthy
-      analytics-db:
-        condition: service_healthy
+      mailpit:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget --no-verbose --tries=1 --spider http://127.0.0.1:8080/actuator/health/readiness || exit 1"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 45s
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  mailpit:
+    image: axllent/mailpit:v1.21
+    container_name: nss-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
     restart: unless-stopped
 
 volumes:
   pgdata:
-  analytics_pgdata:

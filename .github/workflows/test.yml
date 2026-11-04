@@ -1,0 +1,51 @@
+name: Java verification
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    env:
+      JWT_SECRET: Y2ktb25seS1qd3Qtc2VjcmV0LXdpdGgtc3VmZmljaWVudC1sZW5ndGg=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Run tests and quality gates
+        run: ./mvnw -B verify
+
+  mutation:
+    runs-on: ubuntu-24.04
+    env:
+      JWT_SECRET: Y2ktb25seS1qd3Qtc2VjcmV0LXdpdGgtc3VmZmljaWVudC1sZW5ndGg=
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Run mutation testing quality gate
+        run: ./mvnw -B test-compile org.pitest:pitest-maven:mutationCoverage
+
+  container:
+    runs-on: ubuntu-24.04
+    needs: verify
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production container
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: nss:ci-${{ github.sha }}
+      - name: Verify image metadata
+        run: docker image inspect nss:ci-${{ github.sha }}

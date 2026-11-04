@@ -1,11 +1,22 @@
 spring:
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  main:
+    keep-alive: true
+  config:
+    import: optional:file:.env.local[.properties]
+  docker:
+    compose:
+      enabled: ${SPRING_DOCKER_COMPOSE_ENABLED:true}
   application:
     name: sala-de-situacao
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    # Banco operacional do Java. O PostgreSQL analítico é configurado
+    # separadamente em analytics.datasource e nunca deve ser migrado pelo Flyway.
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/nss}
+    username: ${SPRING_DATASOURCE_USERNAME:nss}
+    password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}
 
   jpa:
     hibernate:
@@ -14,7 +25,80 @@ spring:
 
   flyway:
     enabled: true
+    user: ${SPRING_FLYWAY_USER:${SPRING_DATASOURCE_USERNAME:nss}}
+    password: ${SPRING_FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}}
+
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    protocol: ${MAIL_PROTOCOL:smtp}
+    test-connection: ${MAIL_TEST_CONNECTION:false}
+    properties:
+      mail:
+        smtp:
+          auth: ${MAIL_SMTP_AUTH:false}
+          starttls:
+            enable: ${MAIL_SMTP_STARTTLS:false}
+            required: ${MAIL_SMTP_STARTTLS_REQUIRED:false}
+          connectiontimeout: ${MAIL_CONNECTION_TIMEOUT:5000}
+          timeout: ${MAIL_TIMEOUT:5000}
+          writetimeout: ${MAIL_WRITE_TIMEOUT:5000}
+
+api:
+  mail:
+    from: ${MAIL_FROM:}
+  first-access:
+    frontend-url: ${FIRST_ACCESS_FRONTEND_URL:http://localhost:5173}
+    expiration: ${FIRST_ACCESS_EXPIRATION:604800}
+  bootstrap-admin:
+    email: ${BOOTSTRAP_ADMIN_EMAIL:}
+    password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:}
+  auth:
+    refresh-cookie-name: ${REFRESH_COOKIE_NAME:nss_refresh}
+    refresh-expiration: ${REFRESH_EXPIRATION:604800000}
+    secure-cookie: ${SECURE_COOKIES:false}
+    rate-limit:
+      login-maximum: ${AUTH_RATE_LIMIT_LOGIN_MAXIMUM:5}
+      reset-maximum: ${AUTH_RATE_LIMIT_RESET_MAXIMUM:3}
+      window-seconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:900}
+      maximum-entries: ${AUTH_RATE_LIMIT_MAXIMUM_ENTRIES:10000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    # SMTP failures must be alerted separately; they must not make the HTTP
+    # process unavailable or trigger a restart loop for data consultation.
+    mail:
+      enabled: false
+
+analytics:
+  datasource:
+    url: ${ANALYTICS_DATASOURCE_URL:jdbc:postgresql://localhost:5432/situacao_saude}
+    username: ${ANALYTICS_DATASOURCE_USERNAME:nss}
+    password: ${ANALYTICS_DATASOURCE_PASSWORD:}
+    hikari:
+      read-only: true
+      connection-timeout: ${ANALYTICS_DATASOURCE_CONNECTION_TIMEOUT:5000}
+  schema:
+    year-column: ${ANALYTICS_YEAR_COLUMN:ano}
+    month-column: ${ANALYTICS_MONTH_COLUMN:mes}
 
 jwt:
+  # Never use a development fallback. Tests provide this value through
+  # application-test.yml and local development must configure JWT_SECRET.
   secret: ${JWT_SECRET}
   expiration: ${JWT_EXPIRATION:3600000}
+
+server:
+  shutdown: graceful
