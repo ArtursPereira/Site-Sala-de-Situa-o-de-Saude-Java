@@ -411,6 +411,42 @@ Uma etapa não é considerada suficiente isoladamente. A pipeline valida o schem
 
 O objetivo não é eliminar mocks: é impedir que um mock seja a única evidência. Mocks permanecem úteis para isolar uma regra; banco, migrations, contratos e containers verificam se a regra funciona no sistema completo.
 
+## Mutação: `mutmut` na pipeline e PIT no Java
+
+Cobertura de linhas responde “o código foi executado?”. Mutação responde “os testes perceberiam se a regra fosse alterada?”. As duas métricas são complementares.
+
+### Pipeline Python — `mutmut`
+
+- Executa mutações nos módulos críticos de `app/pipeline`.
+- O escopo inclui Bronze/Silver/Gold, carga, território, CNES, atualização, preflight, métricas e referências IBGE.
+- As fixtures oficiais são copiadas para o ambiente mutado e qualquer mudança nelas força os testes dependentes a rodar novamente.
+- A primeira rodada exclui testes de integração para não reinicializar PostgreSQL a cada mutante; essa é uma delimitação de custo, não uma alegação de que integração não importa.
+- O comando reproduzível é `mutmut run`, seguido de `mutmut results`.
+- A meta documentada é matar 95% dos mutantes. Essa métrica é separada da cobertura de linhas.
+
+### Java — PIT
+
+- Executa mutação com `pitest-maven` e suporte JUnit 5.
+- O escopo atual concentra-se em `com.example.nss.analytics.application`, com os testes correspondentes de analytics.
+- O CI roda:
+
+```bash
+./mvnw -B test-compile org.pitest:pitest-maven:mutationCoverage
+```
+
+- O gate configurado exige mutation score mínimo de 80% e test strength mínimo de 80%.
+- O ciclo documentado alcançou 180 de 191 mutações mortas: 94% de mutation score e 96% de test strength.
+- Mutações sobreviventes são classificadas. Casos equivalentes, inalcançáveis ou puramente criptográficos não recebem testes artificiais só para elevar a porcentagem.
+
+### Diferença prática
+
+```text
+mutmut → robustez das transformações e cargas Python
+PIT     → robustez das regras Java de aplicação/analytics
+```
+
+Ambos alteram o código de propósito e verificam se a suíte falha quando uma decisão relevante é invertida. Isso revela testes que executam uma linha, mas não protegem seu comportamento.
+
 ## 6. Front-end: mapa, ranking e estado de navegação
 
 O front-end usa React, TanStack Query, React Simple Maps e GeoJSON estático carregado sob demanda.
