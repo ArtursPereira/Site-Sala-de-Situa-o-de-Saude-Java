@@ -2,6 +2,144 @@
 
 Backend Spring Boot/Java 21 para autenticação e leitura do PostgreSQL analítico publicado pela pipeline. Não acessa PySUS, SINAN bruto, CNES operacional ou Parquet em runtime.
 
+## Arquitetura
+
+O backend é uma aplicação modular em camadas, organizada por responsabilidade:
+
+- `web`: adaptadores HTTP. Controllers recebem parâmetros, delegam o caso de uso e devolvem DTOs da API.
+- `application`: casos de uso e orquestração. Valida filtros, consulta o catálogo territorial, calcula cobertura e compõe respostas.
+- `domain`: tipos e regras centrais, como `Geography`, `EpidemiologyFilter`, `CoverageStatus`, `User` e as entidades de sessão.
+- `infrastructure`: integração com PostgreSQL, JPA, JDBC, Flyway, arquivos TSV territoriais e inicialização do administrador.
+- `api`: requests e responses públicos. Records são imutáveis e definem o contrato JSON sem expor entidades persistidas.
+- `shared`: capacidades transversais, como tratamento de erros e envio de e-mail.
+
+O frontend é o cliente da API. Em produção, o Nginx pode encaminhar `/api/` para o Java, mantendo frontend e API na mesma origem. O Java possui dois datasources independentes:
+
+1. o datasource operacional, usado por JPA/Flyway para usuários, convites, tokens e sessões de refresh;
+2. o datasource analítico, somente leitura, usado por `JdbcTemplate` para consultar `analytics.*`, publicado pela pipeline.
+
+O Java nunca lê Parquet, PySUS, SINAN bruto ou CNES em tempo de consulta. A pipeline processa esses artefatos, enriquece os fatos com CNES/IBGE e publica o resultado no PostgreSQL. A tabela `analytics.pipeline_current_publication` restringe as consultas ao lote corrente de cada doença, ano e município.
+
+### Visão geral do fluxo
+
+```mermaid
+flowchart LR
+    Browser[Frontend NSS] -->|HTTPS /api/v1| Proxy[Nginx ou Caddy]
+    Proxy --> API[Spring Boot Java 21]
+
+    subgraph Security[Segurança e sessão]
+        Filter[JwtAuthenticationFilter]
+        Config[SecurityConfig]
+        Auth[AuthController]
+        JWT[JwtService]
+        Refresh[RefreshSessionService]
+        Rate[AuthRateLimiter]
+    end
+
+    API --> Config
+    Config --> Filter
+    API --> Auth
+    Auth --> JWT
+    Auth --> Refresh
+    Auth --> Rate
+
+    subgraph UseCases[Camada de aplicação]
+        Epidemiology[EpidemiologyService]
+        Territory[TerritoryCatalog]
+        Users[UserService e AdminUserService]
+        FirstAccess[FirstAccessService]
+    end
+
+    API --> Epidemiology
+    API --> Users
+    API --> FirstAccess
+    Epidemiology --> Territory
+
+    subgraph Persistence[Persistência]
+        MainDB[(PostgreSQL operacional)]
+        AnalyticsDB[(PostgreSQL analytics)]
+        JPA[Repositories JPA]
+        JDBC[EpidemiologyRepository]
+        Legacy[AnalyticsRepository]
+    end
+
+    Users --> JPA
+    FirstAccess --> JPA
+    Refresh --> JPA
+    JPA --> MainDB
+    Epidemiology --> JDBC
+    Epidemiology --> Legacy
+    JDBC --> AnalyticsDB
+    Legacy --> AnalyticsDB
+
+    Pipeline[Pipeline CNES / IBGE / SINAN] -->|Gold e publicação corrente| AnalyticsDB
+    Mail[SMTP ou Mailpit] --> FirstAccess
+    FirstAccess --> Mail
+```
+
+### Fluxos principais
+
+#### Consulta epidemiológica
+
+`EpidemiologyController` expõe regiões, estados, municípios, distritos, bairros, doenças e metadata. Ele converte os parâmetros HTTP em `FilterRequest` e `EpidemiologyFilter`, e delega ao `EpidemiologyService`.
+
+O serviço então:
+
+1. valida doença, ano, mês, sexo, faixa etária e códigos geográficos;
+2. resolve os territórios permitidos no `TerritoryCatalog`;
+3. chama `EpidemiologyRepository` para agregar `analytics.fato_casos`;
+4. aplica a publicação corrente, os filtros de área e o status de cobertura;
+5. monta `AnalyticsResponse`, contendo filtros efetivos, total, cobertura, itens territoriais e metadata da publicação.
+
+O frontend recebe os totais já calculados. Ele não acessa o banco e não soma casos para formar o total epidemiológico.
+
+#### Autenticação
+
+`AuthController` coordena login, refresh, logout, primeiro acesso, recuperação de senha e endpoint CSRF. O login valida credenciais com `UserService`, aplica `AuthRateLimiter`, emite JWT pelo `JwtService` e grava o refresh token somente como cookie HttpOnly por meio de `RefreshSessionService`.
+
+`JwtAuthenticationFilter` lê o bearer token, valida sua assinatura e carrega o usuário pelo `CustomUserDetailsService`. `SecurityConfig` define rotas públicas, CORS, CSRF, cookies, permissões e a política stateless.
+
+#### Administração de usuários
+
+`AdminUserController` é protegido pela permissão `USER_MANAGEMENT` e delega convite, pesquisa, ativação, cancelamento, renovação e reset de senha ao `AdminUserService`. `FirstAccessService` controla tokens de primeiro acesso e usa `MailService` para enviar convites e links.
+
+### Classes por camada
+
+| Área | Classes | Responsabilidade |
+| --- | --- | --- |
+| Entrada | `NssApplication` | Inicializa o Spring Boot. |
+| Analytics web | `EpidemiologyController`, `AnalyticsController` | Expõe a API epidemiológica e a consulta legada de casos. |
+| Usuários web | `AuthController`, `AdminUserController` | Expõe autenticação, primeiro acesso, recuperação e administração. |
+| Analytics application | `EpidemiologyService`, `AnalyticsService`, `TerritoryCatalog` | Orquestra consultas, cobertura, metadata e catálogo territorial. |
+| Usuários application | `UserService`, `AdminUserService`, `FirstAccessService`, `RefreshSessionService` | Executa os casos de uso de identidade e sessão. |
+| Segurança | `SecurityConfig`, `JwtService`, `JwtAuthenticationFilter`, `CustomUserDetailsService`, `EmailNormalizer`, `AuthRateLimiter` | Protege endpoints, normaliza identidade, limita tentativas e valida JWT. |
+| Analytics persistence | `EpidemiologyRepository`, `AnalyticsRepository`, `EpidemiologyRowMapper` | Executa SQL analítico e transforma linhas em records internos. |
+| Usuários persistence | `UserRepository`, `FirstAccessTokenRepository`, `RefreshSessionRepository` | Acessa entidades operacionais via Spring Data JPA. |
+| Configuração | `AnalyticsDataSourceConfig`, `BootstrapAdminInitializer` | Cria os dois datasources e inicializa o administrador configurado. |
+| Contratos | `AnalyticsResponse`, `MetadataResponse`, `LoginResponse`, `UserResponse` e demais records | Define o JSON público da API. |
+| Transversal | `GlobalExceptionHandler`, `ErrorResponse`, `MailService` | Padroniza erros e entrega notificações por e-mail. |
+
+### Métodos privados e encapsulamento
+
+Os métodos `private` não são endpoints nem casos de uso públicos. São partes internas das classes acima e existem para manter regras auxiliares no lugar correto:
+
+- `EpidemiologyService.response(...)` centraliza a montagem de `AnalyticsResponse`; `areaEntries(...)` resolve a lista territorial e `regionOf(...)` traduz UF para região.
+- `EpidemiologyRepository.mappedPredicate(...)`, `currentPublicationPredicate()`, `parameters(...)`, `appendAreaFilter(...)` e `regionUfs(...)` constroem as partes controladas do SQL. `identifier(...)` valida nomes de coluna configuráveis antes de inseri-los na query.
+- `TerritoryCatalog.load()`, `loadMunicipalities()` e `readTsv(...)` carregam e validam os catálogos TSV uma única vez; o `record Entry` representa uma entrada territorial imutável.
+- `EpidemiologyRowMapper` tem construtor privado porque é uma fábrica estática de `RowMapper`; não representa um objeto com estado.
+- `UserService.view(...)` e `AdminUserService.view(...)` convertem entidades em respostas sem expor senha, hash ou detalhes de persistência.
+- `AuthRateLimiter.check(...)`, `reserve(...)`, `expired(...)`, `removeExpiredAttempts()` e `evictOldestIfNecessary()` protegem o estado interno do limite de tentativas; o `private record AttemptWindow` guarda a janela de contagem sem virar parte da API da aplicação.
+- `EmailNormalizer` tem construtor privado porque é uma classe utilitária estática; `SecureRandomTokenGenerator` encapsula a geração criptograficamente segura de tokens.
+- Campos `private final` de controllers, serviços e repositories são dependências injetadas pelo Spring. Campos privados das entidades são o estado persistido, acessado por JPA e pelos métodos de domínio.
+
+Manter esses elementos privados impede que controllers, frontend ou outros módulos dependam de detalhes de implementação. Se uma regra precisar ser reutilizada por mais de uma classe, ela deve ser extraída para um serviço, mapper ou componente com contrato próprio, em vez de simplesmente tornar o método público.
+
+### Banco e migrações
+
+O Flyway migra o schema operacional `public`. O Alembic da pipeline migra o schema analítico `analytics`; os dois históricos são independentes. Em um banco compartilhado já existente, `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true` e `SPRING_FLYWAY_BASELINE_VERSION=0` permitem que o Java crie seu histórico sem recriar o PostgreSQL nem modificar as tabelas analíticas.
+
+O datasource analítico usa `read-only=true`. A aplicação consulta `dim_doenca`, `dim_municipio`, `dim_unidade_saude`, `fato_casos` e `pipeline_current_publication`; a pipeline é a responsável por escrever e publicar esses dados.
+
 ## Execução local
 
 Configure `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`, `ANALYTICS_DATASOURCE_URL`, `ANALYTICS_DATASOURCE_USERNAME`, `ANALYTICS_DATASOURCE_PASSWORD` e `JWT_SECRET` sem versionar segredos. Exemplo:
