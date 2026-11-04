@@ -550,11 +550,11 @@ nss-deployment      main  → Docker Compose, Caddy, Prometheus e Grafana
 Uma consulta epidemiológica nacional, rastreável e navegável territorialmente, com a mesma identidade de dados entre pipeline, banco, API, mapa e ranking.
 :::
 
-- Seis doenças com nomes completos e códigos técnicos.
-- Regiões, estados e municípios nacionais.
-- Detalhamento intramunicipal orientado por geometria oficial.
-- Metadados de extração e publicação.
-- Autenticação, sessão persistente e administração de usuários.
+- Catálogo de 49 grupos SINAN/PySUS, com nomes completos e códigos técnicos; seis recortes foram usados nos snapshots visuais validados.
+- Cobertura epidemiológica nacional por regiões, estados e municípios, conforme as publicações disponíveis.
+- Detalhamento intramunicipal condicionado à geometria oficial e ao vínculo territorial disponível.
+- Metadados de extração e publicação para rastreabilidade dos snapshots.
+- Autenticação, sessões persistentes e administração de usuários.
 - Observabilidade da pipeline e operação reproduzível em Docker.
 
 ## Limites conhecidos e evolução futura
