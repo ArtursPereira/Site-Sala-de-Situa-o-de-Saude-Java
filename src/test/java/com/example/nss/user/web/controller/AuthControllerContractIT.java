@@ -100,14 +100,30 @@ class AuthControllerContractIT {
   }
 
   @Test
-  void rejectsRefreshWithoutCsrfToken() throws Exception {
+  void refreshDoesNotRequireCsrfTokenBecauseItUsesSameSiteCookie() throws Exception {
+    User user = new User();
+    user.setId(1L);
+    user.setEmail("user@nss.test");
+    UserDetails principal =
+        org.springframework.security.core.userdetails.User.withUsername("user@nss.test")
+            .password("ignored")
+            .roles("USER")
+            .build();
+    org.mockito.Mockito.when(refreshSessions.rotateWithToken("refresh-token"))
+        .thenReturn(new RefreshSessionService.Rotation(user, "replacement-token"));
+    org.mockito.Mockito.when(userDetailsService.loadUserByUsername("user@nss.test"))
+        .thenReturn(principal);
+    org.mockito.Mockito.when(jwtService.generateToken(user)).thenReturn("access-token");
+    org.mockito.Mockito.when(userService.getByEmail("user@nss.test"))
+        .thenReturn(new UserResponse(1L, "User", "user@nss.test", true));
+
     mockMvc
         .perform(
             post("/api/v1/auth/refresh")
                 .cookie(new jakarta.servlet.http.Cookie("nss_refresh", "refresh-token")))
-        .andExpect(status().isForbidden());
+        .andExpect(status().isOk());
 
-    org.mockito.Mockito.verifyNoInteractions(refreshSessions);
+    verify(refreshSessions).rotateWithToken("refresh-token");
   }
 
   @Test
