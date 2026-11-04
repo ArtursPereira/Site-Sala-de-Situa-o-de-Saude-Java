@@ -443,11 +443,9 @@
 				</dependencies>
 				<configuration>
 					<targetClasses>
-						<param>com.example.nss.service.*</param>
-						<param>com.example.nss.analytics.service.*</param>
+						<param>com.example.nss.analytics.application.*</param>
 					</targetClasses>
 					<targetTests>
-						<param>com.example.nss.service.*</param>
 						<param>com.example.nss.analytics.*</param>
 					</targetTests>
 					<outputFormats>
