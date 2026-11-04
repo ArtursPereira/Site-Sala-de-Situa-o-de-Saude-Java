@@ -119,7 +119,7 @@ public class EpidemiologyRepository {
         + "SELECT 1 FROM analytics.pipeline_current_publication current_publication"
         + " WHERE current_publication.disease_codigo = f.disease_codigo"
         + " AND current_publication.ano = f.ano"
-        + " AND TRIM(current_publication.cd_mun) = TRIM(f.cd_mun)"
+        + " AND current_publication.cd_mun = f.cd_mun"
         + " AND current_publication.batch_id = f.batch_id"
         + ")";
   }
@@ -154,7 +154,7 @@ public class EpidemiologyRepository {
     MapSqlParameterSource parameters =
         new MapSqlParameterSource().addValue("disease", f.disease()).addValue("year", f.year());
     if (f.municipalityCode() != null) {
-      sql.append(" AND TRIM(cd_mun) = :municipalityCode");
+      sql.append(" AND cd_mun = :municipalityCode");
       parameters.addValue("municipalityCode", f.municipalityCode());
     }
     sql.append(" ORDER BY added_at LIMIT 1");
