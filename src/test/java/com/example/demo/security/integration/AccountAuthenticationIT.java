@@ -72,44 +72,46 @@ public class AccountAuthenticationIT {
     private PasswordEncoder passwordEncoder;
 
     @Test
-    void desativarContaDeveBloquearTokenExistenteENovoLogin() throws Exception{
-        User user = persistAccount("admin-integracao@teste.com", "98765432101", Role.ADMIN);
+    void adminDeactivationShouldBlockExistingTokenAndNewLogin()
+            throws Exception {
 
-        String loginJson = """
-                {
-                  "email": "admin-integracao@teste.com",
-                  "password": "SenhaTeste123!"
-                }
-                """;
+        User admin = persistAccount(
+                "admin-flow@teste.com",
+                "44444444444",
+                Role.ADMIN
+        );
 
-        String responseBody = mockMvc.perform(
-                        post("/auth/login")
-                                .contentType(MediaType.APPLICATION_JSON)
-                                .content(loginJson)
-                )
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").isNotEmpty())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
+        User target = persistAccount(
+                "user-flow@teste.com",
+                "55555555555",
+                Role.USER
+        );
 
-        String token = JsonPath.read(responseBody, "$.token");
+        String adminToken = login(admin.getEmail());
+        String userToken = login(target.getEmail());
 
+        // O administrador consegue acessar a rota administrativa.
         mockMvc.perform(
                         get("/NSS/users")
-                                .header("Authorization", "Bearer " + token)
+                                .header("Authorization", "Bearer " + adminToken)
                 )
                 .andExpect(status().isOk());
 
+        // O usuário está autenticado, mas não possui permissão administrativa.
+        mockMvc.perform(
+                        get("/NSS/users")
+                                .header("Authorization", "Bearer " + userToken)
+                )
+                .andExpect(status().isForbidden());
 
-        User account = userRepository.findById(user.getId())
-                .orElseThrow();
+        // A desativação acontece pelo endpoint, com JWT real do administrador.
+        mockMvc.perform(
+                        patch("/NSS/users/{id}/deactivation", target.getId())
+                                .header("Authorization", "Bearer " + adminToken)
+                )
+                .andExpect(status().isNoContent());
 
-        account.setAtivo(false);
-        userRepository.saveAndFlush(account);
-
-
-        User persisted = userRepository.findById(user.getId())
+        User persisted = userRepository.findById(target.getId())
                 .orElseThrow();
 
         assertFalse(persisted.isAtivo());
@@ -118,17 +120,23 @@ public class AccountAuthenticationIT {
                 persisted.getSetupStatus()
         );
 
-
+        // O JWT do usuário agora deixa de autenticar a requisição.
         mockMvc.perform(
                         get("/NSS/users")
-                                .header("Authorization", "Bearer " + token)
+                                .header("Authorization", "Bearer " + userToken)
                 )
                 .andExpect(status().isUnauthorized());
 
+        // A senha continua correta, mas a conta desativada não pode fazer login.
         mockMvc.perform(
                         post("/auth/login")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(loginJson)
+                                .content("""
+                                    {
+                                      "email": "user-flow@teste.com",
+                                      "password": "SenhaTeste123!"
+                                    }
+                                    """)
                 )
                 .andExpect(status().isUnauthorized())
                 .andExpect(
@@ -136,6 +144,19 @@ public class AccountAuthenticationIT {
                                 .value("Email ou senha inválidos")
                 )
                 .andExpect(jsonPath("$.token").doesNotExist());
+
+        // A operação não deve bloquear o administrador solicitante.
+        assertTrue(
+                userRepository.findById(admin.getId())
+                        .orElseThrow()
+                        .isAtivo()
+        );
+
+        mockMvc.perform(
+                        get("/NSS/users")
+                                .header("Authorization", "Bearer " + adminToken)
+                )
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -257,6 +278,26 @@ public class AccountAuthenticationIT {
         user.setSetupStatus(AccountSetupStatus.COMPLETED);
 
         return userRepository.saveAndFlush(user);
+    }
+
+    private String login(String email) throws Exception {
+        String responseBody = mockMvc.perform(
+                        post("/auth/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("""
+                                    {
+                                      "email": "%s",
+                                      "password": "SenhaTeste123!"
+                                    }
+                                    """.formatted(email))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return JsonPath.read(responseBody, "$.token");
     }
 
 

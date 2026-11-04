@@ -11,10 +11,10 @@ import com.example.demo.exception.DuplicateMatriculaException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.security.EmailNormalizer;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -70,7 +70,7 @@ public class AdminUserService {
 
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public void deactiveUser(Long id) {
+    public void deactivateUser(Long id) {
         User user = userRepository.findById(id)
                 .orElseThrow(UserNotFoundException::new);
 
