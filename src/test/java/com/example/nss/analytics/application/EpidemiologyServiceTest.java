@@ -219,10 +219,15 @@ class EpidemiologyServiceTest {
 
     var filter = new EpidemiologyFilter("DENG", 2026, 1, null, null, null, null, null, null);
     var regions = service.query(Geography.REGION, filter);
-    assertEquals(List.of("CO", "N", "NE", "S", "SE"), regions.items().stream().map(AnalyticsResponse.TerritoryItem::code).sorted().toList());
+    assertEquals(
+        List.of("CO", "N", "NE", "S", "SE"),
+        regions.items().stream().map(AnalyticsResponse.TerritoryItem::code).sorted().toList());
 
     for (String region : List.of("N", "NE", "SE", "S", "CO")) {
-      var states = service.query(Geography.STATE, new EpidemiologyFilter("DENG", 2026, 1, null, null, null, null, null, region));
+      var states =
+          service.query(
+              Geography.STATE,
+              new EpidemiologyFilter("DENG", 2026, 1, null, null, null, null, null, region));
       assertFalse(states.items().isEmpty());
     }
   }

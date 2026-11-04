@@ -30,11 +30,16 @@ public class EpidemiologyService {
     if (geography == Geography.NEIGHBORHOOD && filter.districtCode() == null) {
       return response(geography, filter, null, CoverageStatus.UNAVAILABLE, 0L, 0L, List.of(), null);
     }
-    List<TerritoryCatalog.Entry> territories = geography == Geography.REGION || geography == Geography.STATE
-        ? areaEntries(geography, filter)
-        : catalog.forGeography(filter.municipalityCode(), filter.districtCode(), geography.name());
+    List<TerritoryCatalog.Entry> territories =
+        geography == Geography.REGION || geography == Geography.STATE
+            ? areaEntries(geography, filter)
+            : catalog.forGeography(
+                filter.municipalityCode(), filter.districtCode(), geography.name());
     if (geography == Geography.MUNICIPALITY && filter.ufCode() != null) {
-      territories = territories.stream().filter(entry -> entry.territoryId().startsWith(filter.ufCode())).toList();
+      territories =
+          territories.stream()
+              .filter(entry -> entry.territoryId().startsWith(filter.ufCode()))
+              .toList();
     }
     List<String> mappedIds = territories.stream().map(TerritoryCatalog.Entry::territoryId).toList();
     EpidemiologyTotals totals = repository.totals(filter, geography, mappedIds);
@@ -53,7 +58,9 @@ public class EpidemiologyService {
               aggregates.getOrDefault(entry.territoryId(), 0L),
               entry.parentDistrictId()));
     }
-    if (geography == Geography.MUNICIPALITY && filter.municipalityCode() == null && filter.ufCode() == null) {
+    if (geography == Geography.MUNICIPALITY
+        && filter.municipalityCode() == null
+        && filter.ufCode() == null) {
       items = new ArrayList<>();
       for (TerritoryCatalog.Entry entry : catalog.forGeography(null, null, geography.name()))
         items.add(
@@ -83,16 +90,56 @@ public class EpidemiologyService {
 
   private List<TerritoryCatalog.Entry> areaEntries(Geography geography, EpidemiologyFilter filter) {
     Map<String, String> values = new LinkedHashMap<>();
-    values.put("N", "Norte"); values.put("NE", "Nordeste"); values.put("CO", "Centro-Oeste"); values.put("SE", "Sudeste"); values.put("S", "Sul");
+    values.put("N", "Norte");
+    values.put("NE", "Nordeste");
+    values.put("CO", "Centro-Oeste");
+    values.put("SE", "Sudeste");
+    values.put("S", "Sul");
     if (geography == Geography.REGION) {
-      return values.entrySet().stream().map(e -> new TerritoryCatalog.Entry(e.getKey(), e.getValue(), "REGION", e.getKey(), null, "AVAILABLE")).toList();
+      return values.entrySet().stream()
+          .map(
+              e ->
+                  new TerritoryCatalog.Entry(
+                      e.getKey(), e.getValue(), "REGION", e.getKey(), null, "AVAILABLE"))
+          .toList();
     }
-    Map<String, String> states = Map.ofEntries(
-        Map.entry("11", "Rondônia"), Map.entry("12", "Acre"), Map.entry("13", "Amazonas"), Map.entry("14", "Roraima"), Map.entry("15", "Pará"), Map.entry("16", "Amapá"), Map.entry("17", "Tocantins"),
-        Map.entry("21", "Maranhão"), Map.entry("22", "Piauí"), Map.entry("23", "Ceará"), Map.entry("24", "Rio Grande do Norte"), Map.entry("25", "Paraíba"), Map.entry("26", "Pernambuco"), Map.entry("27", "Alagoas"), Map.entry("28", "Sergipe"), Map.entry("29", "Bahia"),
-        Map.entry("31", "Minas Gerais"), Map.entry("32", "Espírito Santo"), Map.entry("33", "Rio de Janeiro"), Map.entry("35", "São Paulo"), Map.entry("41", "Paraná"), Map.entry("42", "Santa Catarina"), Map.entry("43", "Rio Grande do Sul"),
-        Map.entry("50", "Mato Grosso do Sul"), Map.entry("51", "Mato Grosso"), Map.entry("52", "Goiás"), Map.entry("53", "Distrito Federal"));
-    return states.entrySet().stream().filter(e -> filter.regionCode() == null || regionOf(e.getKey()).equals(filter.regionCode())).map(e -> new TerritoryCatalog.Entry(e.getKey(), e.getValue(), "STATE", e.getKey(), null, "AVAILABLE")).toList();
+    Map<String, String> states =
+        Map.ofEntries(
+            Map.entry("11", "Rondônia"),
+            Map.entry("12", "Acre"),
+            Map.entry("13", "Amazonas"),
+            Map.entry("14", "Roraima"),
+            Map.entry("15", "Pará"),
+            Map.entry("16", "Amapá"),
+            Map.entry("17", "Tocantins"),
+            Map.entry("21", "Maranhão"),
+            Map.entry("22", "Piauí"),
+            Map.entry("23", "Ceará"),
+            Map.entry("24", "Rio Grande do Norte"),
+            Map.entry("25", "Paraíba"),
+            Map.entry("26", "Pernambuco"),
+            Map.entry("27", "Alagoas"),
+            Map.entry("28", "Sergipe"),
+            Map.entry("29", "Bahia"),
+            Map.entry("31", "Minas Gerais"),
+            Map.entry("32", "Espírito Santo"),
+            Map.entry("33", "Rio de Janeiro"),
+            Map.entry("35", "São Paulo"),
+            Map.entry("41", "Paraná"),
+            Map.entry("42", "Santa Catarina"),
+            Map.entry("43", "Rio Grande do Sul"),
+            Map.entry("50", "Mato Grosso do Sul"),
+            Map.entry("51", "Mato Grosso"),
+            Map.entry("52", "Goiás"),
+            Map.entry("53", "Distrito Federal"));
+    return states.entrySet().stream()
+        .filter(
+            e -> filter.regionCode() == null || regionOf(e.getKey()).equals(filter.regionCode()))
+        .map(
+            e ->
+                new TerritoryCatalog.Entry(
+                    e.getKey(), e.getValue(), "STATE", e.getKey(), null, "AVAILABLE"))
+        .toList();
   }
 
   private String regionOf(String uf) {

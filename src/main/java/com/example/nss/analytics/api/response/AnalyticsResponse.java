@@ -24,7 +24,14 @@ public record AnalyticsResponse(
       String districtCode,
       String ufCode,
       String regionCode) {
-    public FilterResponse(String disease, Integer year, Integer month, String sex, String ageBand, String municipalityCode, String districtCode) {
+    public FilterResponse(
+        String disease,
+        Integer year,
+        Integer month,
+        String sex,
+        String ageBand,
+        String municipalityCode,
+        String districtCode) {
       this(disease, year, month, sex, ageBand, municipalityCode, districtCode, null, null);
     }
   }

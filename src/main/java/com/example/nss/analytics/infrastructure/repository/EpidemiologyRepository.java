@@ -31,7 +31,8 @@ public class EpidemiologyRepository {
       EpidemiologyFilter f, Geography geography, List<String> mappedIds) {
     String territory =
         switch (geography) {
-          case REGION -> "CASE WHEN SUBSTRING(f.cd_mun,1,2) IN ('11','12','13','14','15','16','17') THEN 'N' WHEN SUBSTRING(f.cd_mun,1,2) IN ('21','22','23','24','25','26','27','28','29') THEN 'NE' WHEN SUBSTRING(f.cd_mun,1,2) IN ('31','32','33','35') THEN 'SE' WHEN SUBSTRING(f.cd_mun,1,2) IN ('41','42','43') THEN 'S' ELSE 'CO' END";
+          case REGION ->
+              "CASE WHEN SUBSTRING(f.cd_mun,1,2) IN ('11','12','13','14','15','16','17') THEN 'N' WHEN SUBSTRING(f.cd_mun,1,2) IN ('21','22','23','24','25','26','27','28','29') THEN 'NE' WHEN SUBSTRING(f.cd_mun,1,2) IN ('31','32','33','35') THEN 'SE' WHEN SUBSTRING(f.cd_mun,1,2) IN ('41','42','43') THEN 'S' ELSE 'CO' END";
           case STATE -> "SUBSTRING(f.cd_mun,1,2)";
           case MUNICIPALITY -> "f.cd_mun";
           case DISTRICT -> "f.notification_district_id";
@@ -193,7 +194,8 @@ public class EpidemiologyRepository {
     return p;
   }
 
-  private void appendAreaFilter(EpidemiologyFilter f, Geography geography, StringBuilder sql, MapSqlParameterSource p) {
+  private void appendAreaFilter(
+      EpidemiologyFilter f, Geography geography, StringBuilder sql, MapSqlParameterSource p) {
     if (f.ufCode() != null && geography != Geography.STATE) {
       sql.append(" AND SUBSTRING(f.cd_mun,1,2) = :ufCode");
       p.addValue("ufCode", f.ufCode());

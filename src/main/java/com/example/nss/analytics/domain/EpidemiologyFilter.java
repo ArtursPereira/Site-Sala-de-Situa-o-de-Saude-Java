@@ -14,9 +14,17 @@ public record EpidemiologyFilter(
     String districtCode,
     String ufCode,
     String regionCode) {
-  public EpidemiologyFilter(String disease, Integer year, Integer month, String sex, String ageBand, String municipalityCode, String districtCode) {
+  public EpidemiologyFilter(
+      String disease,
+      Integer year,
+      Integer month,
+      String sex,
+      String ageBand,
+      String municipalityCode,
+      String districtCode) {
     this(disease, year, month, sex, ageBand, municipalityCode, districtCode, null, null);
   }
+
   public static final List<String> AGE_BANDS =
       List.of(
           "LT1", "01_04", "05_09", "10_14", "15_19", "20_39", "40_59", "60_64", "65_69", "70_74",

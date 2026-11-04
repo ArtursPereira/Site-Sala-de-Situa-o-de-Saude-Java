@@ -60,7 +60,14 @@ public class EpidemiologyController {
       String districtCode,
       String ufCode,
       String regionCode) {
-    public FilterRequest(String disease, Integer year, Integer month, String sex, String ageBand, String municipalityCode, String districtCode) {
+    public FilterRequest(
+        String disease,
+        Integer year,
+        Integer month,
+        String sex,
+        String ageBand,
+        String municipalityCode,
+        String districtCode) {
       this(disease, year, month, sex, ageBand, municipalityCode, districtCode, null, null);
     }
 
