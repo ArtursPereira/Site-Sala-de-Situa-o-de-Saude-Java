@@ -100,6 +100,15 @@ public class GlobalExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(AccountDeactivationNotAllowedException.class)
+    public ResponseEntity<Map<String, String>> handleDeactivationNotAllowed(
+            AccountDeactivationNotAllowedException exception
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CONFLICT)
+                .body(Map.of("message", exception.getMessage()));
+    }
+
 
 
 }

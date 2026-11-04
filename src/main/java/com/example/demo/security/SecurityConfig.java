@@ -82,6 +82,11 @@ public class SecurityConfig {
                                 "/NSS/users/**"
                         ).hasRole("ADMIN")
 
+                        .requestMatchers(
+                                HttpMethod.PATCH,
+                                "/NSS/users/**"
+                        ).hasRole("ADMIN")
+
                         .anyRequest().authenticated()
                 )
 

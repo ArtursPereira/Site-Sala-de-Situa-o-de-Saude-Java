@@ -23,6 +23,8 @@ public interface UserMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "password", ignore = true)
     @Mapping(target = "role", ignore = true)
+    @Mapping(target = "ativo", ignore = true)
+    @Mapping(target = "setupStatus", ignore = true)
     void updateEntityFromRequest(
             UpdateRequest request,
             @MappingTarget User entity

@@ -3,13 +3,17 @@ package com.example.demo.service;
 import com.example.demo.DTO.mapper.UserMapper;
 import com.example.demo.DTO.request.UpdateRequest;
 import com.example.demo.DTO.response.UserResponse;
+import com.example.demo.entity.Role;
 import com.example.demo.entity.User;
+import com.example.demo.exception.AccountDeactivationNotAllowedException;
 import com.example.demo.exception.DuplicateEmailException;
 import com.example.demo.exception.DuplicateMatriculaException;
 import com.example.demo.exception.UserNotFoundException;
 import com.example.demo.repository.UserRepository;
 import com.example.demo.security.EmailNormalizer;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -60,6 +64,20 @@ public class AdminUserService {
             throw new UserNotFoundException();
         }
         userRepository.deleteById(id);
+
+    }
+
+
+    @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deactiveUser(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(UserNotFoundException::new);
+
+        if (user.getRole() == Role.ADMIN) {
+            throw new AccountDeactivationNotAllowedException();
+        }
+        user.setAtivo(false);
 
     }
 }
