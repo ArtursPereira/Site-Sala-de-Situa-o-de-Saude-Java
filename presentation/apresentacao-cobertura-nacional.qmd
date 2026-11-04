@@ -51,18 +51,48 @@ O produto apresenta **notificações da unidade notificadora**. A localização 
 “Cobertura nacional” significa disponibilidade do recorte epidemiológico nacional na aplicação. A cobertura territorial de distritos e bairros continua dependendo da existência de geometria e do vínculo oficial disponível.
 :::
 
-## 2. Doenças abrangidas
+## 2. Doenças abrangidas — catálogo SINAN
 
-| Nome exibido | Código | Descrição do recorte |
-|---|---|---|
-| Dengue | `DENG` | Notificações de dengue |
-| Chikungunya | `CHIK` | Notificações de chikungunya |
-| Zika | `ZIKA` | Notificações de Zika |
-| Febre maculosa | `FMAC` | Notificações de febre maculosa |
-| Toxoplasmose congênita | `TOXC` | Notificações de toxoplasmose congênita |
-| Toxoplasmose gestacional | `TOXG` | Notificações de toxoplasmose gestacional |
+A pipeline reconhece **49 grupos de doenças/notificações homologados pelo PySUS/SINAN**. O código permanece como identidade técnica no banco e o nome completo é usado na interface.
 
-Os nomes completos são apresentados no seletor, com as siglas preservadas para identificação técnica e compatibilidade com a pipeline.
+| Código | Nome completo | Código | Nome completo |
+|---|---|---|---|
+| `DENG` | Dengue | `CHIK` | Chikungunya |
+| `ZIKA` | Zika | `TUBE` | Tuberculose |
+| `HANS` | Hanseníase | `HEPA` | Hepatites virais |
+| `SIFA` | Sífilis adquirida | `SIFC` | Sífilis congênita |
+| `LEPT` | Leptospirose | `MENI` | Meningite |
+| `FMAC` | Febre maculosa | `TOXC` | Toxoplasmose congênita |
+| `TOXG` | Toxoplasmose gestacional | `ACBI` | Acidente de trabalho com material biológico |
+| `ACGR` | Acidente de trabalho | `ANIM` | Acidente por animais peçonhentos |
+| `ANTR` | Atendimento antirrábico | `BOTU` | Botulismo |
+| `CANC` | Câncer relacionado ao trabalho | `CHAG` | Doença de Chagas aguda |
+| `ESQU` | Esquistossomose | `COLE` | Cólera |
+| `COQU` | Coqueluche | `DERM` | Dermatoses ocupacionais |
+| `DIFT` | Difteria | `EXAN` | Doenças exantemáticas |
+| `FTIF` | Febre tifoide | `HANT` | Hantavirose |
+| `IEXO` | Intoxicação exógena | `INFL` | Influenza pandêmica |
+| `LEIV` | Leishmaniose visceral | `LTAN` | Leishmaniose tegumentar americana |
+| `LERD` | LER/Dort | `MALA` | Malária |
+| `MENT` | Transtornos mentais relacionados ao trabalho | `NTRA` | Notificação de tracoma |
+| `PAIR` | Perda auditiva por ruído relacionada ao trabalho | `PFAN` | Paralisia flácida aguda |
+
+::: {.small}
+Catálogo técnico conforme `DISEASE_NAMES` da pipeline e `SINAN.group_definitions` do PySUS 2.11.7. O endpoint Java publica os códigos efetivamente presentes nas publicações disponíveis.
+:::
+
+## Catálogo SINAN — continuação
+
+| Código | Nome completo | Código | Nome completo |
+|---|---|---|---|
+| `PNEU` | Pneumoconioses relacionadas ao trabalho | `PEST` | Peste |
+| `RAIV` | Raiva | `SDTA` | Surto de doenças transmitidas por alimentos |
+| `SRC` | Síndrome da rubéola congênita | `SIFG` | Sífilis em gestante |
+| `TETA` | Tétano acidental | `TETN` | Tétano neonatal |
+| `TRAC` | Inquérito de tracoma | `VARC` | Varicela |
+| `VIOL` | Violência doméstica, sexual ou outras violências |  |  |
+
+Os snapshots epidemiológicos usados na validação visual anterior cobrem seis códigos (`DENG`, `CHIK`, `ZIKA`, `FMAC`, `TOXC` e `TOXG`); o catálogo da pipeline é mais amplo e permite publicar os demais grupos conforme os recortes SINAN estejam disponíveis e validados.
 
 ## Cobertura temporal e publicação
 
