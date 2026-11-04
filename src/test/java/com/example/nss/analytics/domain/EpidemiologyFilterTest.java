@@ -24,6 +24,14 @@ class EpidemiologyFilterTest {
   }
 
   @Test
+  void acceptsNationalAreaScopes() {
+    var filter = new EpidemiologyFilter("DENG", 2026, 1, null, null, null, null, "33", "SE");
+
+    assertEquals("33", filter.ufCode());
+    assertEquals("SE", filter.regionCode());
+  }
+
+  @Test
   void rejectsInvalidMonth() {
     assertThrows(
         InvalidFilterException.class,
@@ -66,5 +74,15 @@ class EpidemiologyFilterTest {
     assertThrows(
         InvalidFilterException.class,
         () -> new EpidemiologyFilter("DENG", 2026, 1, null, null, "x", null));
+  }
+
+  @Test
+  void rejectsInvalidNationalAreaScopes() {
+    assertThrows(
+        InvalidFilterException.class,
+        () -> new EpidemiologyFilter("DENG", 2026, 1, null, null, null, null, "3", null));
+    assertThrows(
+        InvalidFilterException.class,
+        () -> new EpidemiologyFilter("DENG", 2026, 1, null, null, null, null, null, "SUDESTE"));
   }
 }

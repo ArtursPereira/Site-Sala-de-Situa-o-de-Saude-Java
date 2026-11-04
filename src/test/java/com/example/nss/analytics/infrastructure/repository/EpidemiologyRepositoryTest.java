@@ -68,5 +68,14 @@ class EpidemiologyRepositoryTest {
             .toList();
     assertEquals(
         3L, repository.totals(neighborhoods, Geography.NEIGHBORHOOD, neighborhoodIds).mapped());
+
+    assertEquals(1, repository.aggregate(filter, Geography.REGION, List.of("N")).size());
+    assertEquals(1, repository.aggregate(filter, Geography.STATE, List.of("33")).size());
+    for (String region : List.of("N", "NE", "SE", "S", "CO")) {
+      var nationalState = new EpidemiologyFilter(null, null, null, null, null, null, null, null, region);
+      assertEquals(region.equals("SE") ? 1 : 0, repository.aggregate(nationalState, Geography.STATE, List.of("33")).size());
+    }
+    var scopedMunicipalities = new EpidemiologyFilter(null, null, null, null, null, null, null, "33", null);
+    assertEquals(1, repository.aggregate(scopedMunicipalities, Geography.MUNICIPALITY, List.of("3301009")).size());
   }
 }
