@@ -15,6 +15,7 @@ public class TerritoryCatalog {
   private static final String MUNICIPALITY = "MUNICIPALITY";
   private static final String NEIGHBORHOOD_OR_LOCALITY = "NEIGHBORHOOD_OR_LOCALITY";
   private static final int MINIMUM_TERRITORY_COLUMNS = 6;
+  private static final int MINIMUM_MUNICIPALITIES = 5570;
   private final Map<String, Entry> entries;
   private final Map<String, String> municipalities;
 
@@ -67,8 +68,11 @@ public class TerritoryCatalog {
                 new ClassPathResource("territories/national-municipalities.tsv").getInputStream(),
                 StandardCharsets.UTF_8))) {
       reader.readLine();
-      String line;
-      while ((line = reader.readLine()) != null) {
+      while (true) {
+        String line = reader.readLine();
+        if (line == null) {
+          break;
+        }
         String[] columns = line.split("\\t", -1);
         if (columns.length >= 2 && columns[0].matches("\\d{7}") && !columns[1].isBlank()) {
           result.put(columns[0], columns[1]);
@@ -77,7 +81,7 @@ public class TerritoryCatalog {
     } catch (IOException e) {
       throw new IllegalStateException("Catálogo nacional de municípios não disponível", e);
     }
-    if (result.size() < 5570) {
+    if (result.size() < MINIMUM_MUNICIPALITIES) {
       throw new IllegalStateException(
           "Catálogo nacional de municípios incompleto: " + result.size());
     }
@@ -90,8 +94,11 @@ public class TerritoryCatalog {
             new InputStreamReader(
                 new ClassPathResource(resource).getInputStream(), StandardCharsets.UTF_8))) {
       reader.readLine();
-      String line;
-      while ((line = reader.readLine()) != null) {
+      while (true) {
+        String line = reader.readLine();
+        if (line == null) {
+          break;
+        }
         String[] p = line.split("\\t", -1);
         if (p.length >= MINIMUM_TERRITORY_COLUMNS && !p[0].isBlank()) {
           result.putIfAbsent(

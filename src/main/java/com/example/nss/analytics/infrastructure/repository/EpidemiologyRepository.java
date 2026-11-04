@@ -11,6 +11,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class EpidemiologyRepository {
+  private static final String MUNICIPALITY_PARAMETER = "municipalityCode";
   private final NamedParameterJdbcTemplate jdbc;
   private final String yearColumn;
   private final String monthColumn;
@@ -42,11 +43,11 @@ public class EpidemiologyRepository {
     MapSqlParameterSource p = parameters(f, sql);
     if (geography == Geography.MUNICIPALITY && f.municipalityCode() != null) {
       sql.append(" AND f.cd_mun = :municipalityCode");
-      p.addValue("municipalityCode", f.municipalityCode());
+      p.addValue(MUNICIPALITY_PARAMETER, f.municipalityCode());
     }
     if (geography != Geography.MUNICIPALITY && f.municipalityCode() != null) {
       sql.append(" AND f.cd_mun = :municipalityCode");
-      p.addValue("municipalityCode", f.municipalityCode());
+      p.addValue(MUNICIPALITY_PARAMETER, f.municipalityCode());
     }
     if (geography == Geography.NEIGHBORHOOD && f.districtCode() != null) {
       sql.append(" AND f.notification_district_id = :districtCode");
@@ -73,7 +74,7 @@ public class EpidemiologyRepository {
     p.addValues(territoryParams.getValues());
     if (f.municipalityCode() != null) {
       sql.append(" AND f.cd_mun = :municipalityCode");
-      p.addValue("municipalityCode", f.municipalityCode());
+      p.addValue(MUNICIPALITY_PARAMETER, f.municipalityCode());
     }
     if (geography == Geography.NEIGHBORHOOD && f.districtCode() != null) {
       sql.append(" AND f.notification_district_id = :districtCode");
