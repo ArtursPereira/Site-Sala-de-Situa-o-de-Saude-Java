@@ -398,25 +398,20 @@ contrato HTTP / resposta do dashboard
 
 Essa divisão evita um falso positivo em que a pipeline passa isoladamente, mas a API não consegue consumir o dado publicado.
 
-## Estratégias contra testes artificiais
+## Estratégias contra testes artificiais — dados
 
 Um teste artificial verifica apenas que o código respondeu algo plausível. A NSS usa camadas de evidência para verificar que o resultado continua correto quando passa pelo banco, pelos contratos e pela operação real.
 
-### 1. Dados representativos e invariantes
+### Dados representativos e invariantes
 
 - Fixtures Parquet, CSV, JSON, XLS e catálogos IBGE/CNES exercitam layouts e códigos reais.
 - Os testes verificam totais, deduplicação, schemas, códigos territoriais e linhas rejeitadas.
 - Testes negativos cobrem arquivo vazio, filtro inválido, município fora do escopo e publicação ausente.
 - Snapshots e oráculos SQL comparam resultados completos, não apenas HTTP 200.
 
-### 2. Banco e infraestrutura reais
+## Estratégias contra testes artificiais — contratos
 
-- Testes de integração usam PostgreSQL 16, migrations e carga transacional.
-- O Java usa Testcontainers para testar repositórios, autenticação e fluxos persistidos.
-- O CI sobe a stack Docker de observabilidade e valida Prometheus, Pushgateway e Grafana.
-- O backup é restaurado em outro banco e consultado novamente.
-
-### 3. Contratos entre componentes
+### Contratos entre componentes
 
 ```text
 fonte → transformação → serving → SQL → API → resposta
@@ -424,7 +419,14 @@ fonte → transformação → serving → SQL → API → resposta
 
 Uma etapa não é considerada suficiente isoladamente. A pipeline valida o schema publicado; o Java valida que encontra a publicação correta; os contratos HTTP validam filtros, totais, cobertura e metadados.
 
-### 4. Controles contra testes que “passam por acaso”
+### Banco e infraestrutura reais
+
+- Testes de integração usam PostgreSQL 16, migrations e carga transacional.
+- O Java usa Testcontainers para testar repositórios, autenticação e fluxos persistidos.
+- O CI sobe a stack Docker de observabilidade e valida Prometheus, Pushgateway e Grafana.
+- O backup é restaurado em outro banco e consultado novamente.
+
+### Controles contra testes que “passam por acaso”
 
 - PIT altera regras do analytics e exige mutation score e test strength mínimos de 80%.
 - ArchUnit impede que controllers contornem services e repositórios.
@@ -432,7 +434,9 @@ Uma etapa não é considerada suficiente isoladamente. A pipeline valida o schem
 - O Compose valida permissões reais: o usuário Grafana consegue ler, mas não inserir.
 - Métricas são publicadas no Pushgateway e verificadas por labels de pipeline, camada, doença e ano.
 
-### 5. Reprodutibilidade e separação de ambientes
+## Estratégias contra testes artificiais — reprodutibilidade
+
+### Reprodutibilidade e separação de ambientes
 
 - Unitários são rápidos e determinísticos; integrações são marcadas e executadas com serviços reais.
 - Dependências são fixadas por lockfiles, versões de imagem e fixtures versionadas.
