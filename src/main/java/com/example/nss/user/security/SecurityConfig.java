@@ -62,6 +62,8 @@ public class SecurityConfig {
                 csrf.csrfTokenRepository(csrfTokenRepository())
                     .ignoringRequestMatchers(
                         "/api/v1/auth/login",
+                        "/api/v1/auth/refresh",
+                        "/api/v1/auth/logout",
                         "/api/v1/auth/first-access",
                         "/api/v1/auth/password-reset/request",
                         "/api/v1/auth/password-reset/complete",
