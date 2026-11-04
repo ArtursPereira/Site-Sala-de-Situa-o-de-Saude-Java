@@ -47,7 +47,5 @@ jobs:
           push: false
           load: true
           tags: nss:ci-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
       - name: Verify image metadata
         run: docker image inspect nss:ci-${{ github.sha }}
