@@ -1,0 +1,467 @@
+---
+title: "NSS — Cobertura Nacional"
+subtitle: "Evolução da V1, arquitetura e validação de produção"
+author:
+  - "Zadoque Carneiro"
+  - "Gabriel Costa"
+  - "Artur Pereira"
+  - "Luiz Gabriel"
+date: "2026-11-04"
+format:
+  revealjs:
+    footer: "NSS — Cobertura Nacional | Núcleo de Situação de Saúde"
+---
+
+## O que mudou desde a última apresentação
+
+::: {.pipeline-flow}
+SINAN + CNES + IBGE → Pipeline Python → PostgreSQL → API Java → Front-end nacional
+:::
+
+- A apresentação anterior descrevia uma V1 concentrada em quatro municípios.
+- O sistema agora consulta recortes nacionais por região, estado e município.
+- O Estado do Rio de Janeiro passou a ter validação territorial específica dos 92 municípios.
+- A evolução foi integrada à `main` dos quatro repositórios.
+
+## Sumário
+
+1. O novo escopo
+2. Cobertura epidemiológica e territorial
+3. Arquitetura integrada
+4. Pipeline, PostgreSQL e observabilidade
+5. API Java e segurança
+6. Front-end e validação do RJ
+7. Operação, CI e próximos limites
+
+## 1. O novo escopo: cobertura nacional
+
+### O que o usuário pode explorar
+
+- Brasil → regiões → estados → municípios.
+- Filtros por doença, ano, mês, sexo e faixa etária.
+- Ranking e mapa sincronizados com o mesmo recorte consultado.
+- Seletores dependentes: uma região restringe os estados; um estado restringe os municípios.
+- Drill-down intramunicipal quando existe território oficial compatível.
+
+### Semântica da métrica
+
+O produto apresenta **notificações da unidade notificadora**. A localização não deve ser interpretada automaticamente como residência ou local de infecção.
+
+::: {.callout-note}
+“Cobertura nacional” significa disponibilidade do recorte epidemiológico nacional na aplicação. A cobertura territorial de distritos e bairros continua dependendo da existência de geometria e do vínculo oficial disponível.
+:::
+
+## 2. Doenças abrangidas
+
+| Nome exibido | Código | Descrição do recorte |
+|---|---|---|
+| Dengue | `DENG` | Notificações de dengue |
+| Chikungunya | `CHIK` | Notificações de chikungunya |
+| Zika | `ZIKA` | Notificações de Zika |
+| Febre maculosa | `FMAC` | Notificações de febre maculosa |
+| Toxoplasmose congênita | `TOXC` | Notificações de toxoplasmose congênita |
+| Toxoplasmose gestacional | `TOXG` | Notificações de toxoplasmose gestacional |
+
+Os nomes completos são apresentados no seletor, com as siglas preservadas para identificação técnica e compatibilidade com a pipeline.
+
+## Cobertura temporal e publicação
+
+- A carga e a consulta são particionadas por doença e ano.
+- O escopo validado inclui 2023, 2024, 2025 e 2026 nos snapshots disponíveis.
+- O filtro “todos os meses” consulta o ano inteiro, sem restringir a um mês específico.
+- O filtro “todos os anos” mantém o mês escolhido e agrega os anos publicados.
+
+Cada resposta pode informar:
+
+```text
+sourceExtractedAt  → quando o dado SINAN foi extraído
+addedAt            → quando o registro foi publicado na camada de serving
+coverage           → status, total mapeado e total não mapeado
+filters            → filtros efetivamente aplicados
+```
+
+## 3. Arquitetura integrada
+
+```text
+SINAN / PySUS                         IBGE / CNES
+       │                                  │
+       ├── Bronze preservado               ├── Catálogo territorial
+       ├── Silver normalizado              └── Unidades notificadoras
+       │                                  │
+       └──────────── Pipeline Python ─────┘
+                          │
+                   Gold / Serving
+                          │
+                    PostgreSQL
+                          │
+              API Java / Spring Boot
+                          │
+                React + mapas GeoJSON
+                          │
+                   Caddy / Docker
+```
+
+### Responsabilidade de cada camada
+
+| Camada | Responsabilidade |
+|---|---|
+| Bronze | Preservar a fonte recebida e o contexto da extração |
+| Silver | Normalizar nomes, tipos, códigos, datas e regras de qualidade |
+| Gold/Serving | Agregar notificações e materializar o recorte consultável |
+| PostgreSQL | Persistir dados, metadados de publicação e consultas analíticas |
+| Java | Expor contratos, validar filtros, aplicar autorização e consultar o banco |
+| Front-end | Apresentar mapas, rankings, filtros, sessão e fluxos administrativos |
+
+## Pipeline: SINAN, CNES e IBGE
+
+### SINAN
+
+- Atualização idempotente por doença × ano.
+- Preservação dos arquivos de origem e manifestação do layout.
+- Deduplicação e validação antes da agregação.
+- Publicação somente após a carga concluir com sucesso.
+
+### CNES
+
+- Cadastro das unidades notificadoras e suas coordenadas.
+- Deduplicação por `cd_unidade`.
+- Vínculo da unidade com município, distrito e bairro quando possível.
+- Registros sem vínculo permanecem contabilizados, mas são marcados como não mapeados.
+
+### IBGE
+
+- Catálogo nacional de estados e municípios.
+- Malha oficial de municípios.
+- Malha de distritos do Estado do Rio de Janeiro.
+- Malha de bairros disponível somente onde a fonte oficial fornece geometria compatível.
+
+## 4. PostgreSQL e metadados de publicação
+
+O serving passou a guardar a identidade temporal da publicação. Isso evita que a consulta escolha uma linha arbitrária por meio de `MAX` quando o contrato exige a publicação exata.
+
+```sql
+WHERE disease_code = :disease
+  AND reference_year = :year
+  AND source_extracted_at = :sourceExtractedAt
+  AND added_at = :addedAt
+```
+
+### Benefícios
+
+- Reprodutibilidade de uma resposta já publicada.
+- Rastreabilidade entre arquivo SINAN, transformação e API.
+- Possibilidade de comparar duas publicações do mesmo recorte.
+- Exposição dos timestamps ao front-end para informar a origem dos dados.
+
+## Observabilidade
+
+```text
+Pipeline → métricas Prometheus → dashboards/alertas Grafana
+                         │
+                         ├── execução e duração
+                         ├── registros lidos e publicados
+                         ├── falhas e status de carga
+                         └── qualidade e cobertura territorial
+```
+
+- Prometheus coleta as métricas expostas pela pipeline.
+- Grafana apresenta o estado das execuções e dimensões de publicação.
+- O PostgreSQL continua sendo a fonte dos dados epidemiológicos; Prometheus não substitui a consulta analítica.
+
+## 5. API Java: contrato nacional
+
+### Principais endpoints
+
+```text
+GET /api/v1/diseases
+GET /api/v1/metadata
+GET /api/v1/epidemiology/region
+GET /api/v1/epidemiology/state
+GET /api/v1/epidemiology/municipalities
+GET /api/v1/epidemiology/districts
+GET /api/v1/epidemiology/neighborhoods
+```
+
+Os endpoints epidemiológicos recebem filtros comuns e escopo territorial:
+
+```text
+disease, year, month, sex, ageBand
+regionCode, ufCode, municipalityCode, districtCode
+```
+
+As respostas normalizam os itens para o mesmo formato de ranking, incluindo total oficial, status de cobertura, timestamps e filtros aplicados.
+
+## Arquitetura do Java: módulos e dependências
+
+```text
+com.example.nss
+├── analytics
+│   ├── api/response          contratos de saída
+│   ├── application           casos de uso e regras de consulta
+│   ├── domain                filtros, geografia e cobertura
+│   ├── infrastructure        JDBC, RowMappers e repositórios
+│   └── web/controller         endpoints HTTP
+├── user
+│   ├── api                    requests, responses e mappers
+│   ├── application            login, primeiro acesso e administração
+│   ├── domain                 usuário, tokens e sessões
+│   ├── infrastructure         persistência e bootstrap do admin
+│   ├── security               JWT, refresh e autorização
+│   └── web/controller          autenticação e gestão de usuários
+└── shared                     erros HTTP e notificações por e-mail
+```
+
+### Fluxo de uma consulta epidemiológica
+
+```text
+HTTP request
+  → controller valida entrada
+  → service resolve escopo e publicação
+  → repository executa SQL parametrizado
+  → mapper converte linha em resultado
+  → response devolve itens, total, cobertura e metadados
+```
+
+- Controllers não acessam diretamente o PostgreSQL.
+- O domínio não depende de classes de persistência.
+- Repositórios isolam SQL, `RowMapper` e detalhes do JDBC.
+- O catálogo territorial resolve códigos IBGE e escopos nacionais.
+- Flyway versiona a evolução do schema.
+
+## Backend: arquitetura e segurança
+
+```text
+web/controller
+      ↓
+application service
+      ↓
+domain / ports
+      ↓
+infrastructure repository
+      ↓
+PostgreSQL
+```
+
+- Spring Boot com módulos de analytics, usuários e infraestrutura compartilhada.
+- Separação entre DTOs de API, domínio e entidades de persistência.
+- JWT para autenticação e refresh sessions persistidas.
+- CSRF, rate limiting, rotação e revogação de refresh tokens.
+- Bootstrap do primeiro administrador por variáveis de ambiente.
+- Autorização separada para administração de usuários.
+
+## Testes do Java: cobertura em camadas
+
+O repositório Java mantém 36 classes de teste, com 153 métodos anotados para teste, organizados em testes rápidos e testes de integração.
+
+| Camada | O que é validado |
+|---|---|
+| Domínio | Filtros, normalização de e-mail, regras de cobertura e escopo |
+| Application | Serviços de epidemiologia, catálogo territorial, usuários e rate limiting |
+| API/Web MVC | Status HTTP, validação, contratos, erros e autorização |
+| Persistência | Repositórios, migrations, publicações e sessões no PostgreSQL |
+| Segurança | JWT, refresh rotation, revogação, CSRF e isolamento administrativo |
+| Arquitetura | Regras de dependência entre camadas com ArchUnit |
+| Integração | Fluxos completos com PostgreSQL e Testcontainers |
+
+### Quality gates do CI
+
+```text
+./mvnw verify
+  ├── Surefire: testes unitários (*Test)
+  ├── Failsafe: testes de integração (*IT)
+  ├── JaCoCo: 90% linhas, 75% branches, 88% métodos
+  ├── Spotless + Checkstyle + PMD
+  └── Flyway, compilação e empacotamento
+
+./mvnw test-compile org.pitest:pitest-maven:mutationCoverage
+  └── analytics: mutation score ≥ 80% e test strength ≥ 80%
+```
+
+O CI ainda constrói a imagem de produção e verifica seus metadados. Assim, o pipeline de qualidade cobre comportamento, arquitetura, banco, segurança, mutações e empacotamento.
+
+## Arquitetura da pipeline Python
+
+```text
+app/pipeline
+├── sinan/                    origem, Bronze, Silver e Gold
+├── cnes/                     ingestão e normalização das unidades
+├── reference/ibge/           catálogo, DTB, histórico e validação
+├── esporo/                   regras de dados territoriais auxiliares
+├── observability/            métricas, Pushgateway e Grafana
+├── atomic_io.py              escrita atômica e manifests
+├── scope.py                  escopo nacional e validações
+├── preflight.py              pré-condições de operação
+├── run*.py / load*.py        orquestração das execuções
+└── territory_mapping.py      vínculo unidade → território
+```
+
+### Fluxo de dados
+
+```text
+source.py
+   ↓
+bronze.py  ── preserva arquivo e schema observado
+   ↓
+silver.py  ── tipos, códigos, nomes e regras canônicas
+   ↓
+gold.py    ── agregação por doença, ano e território
+   ↓
+load.py    ── transação, migrations e serving PostgreSQL
+   ↓
+metrics.py ── métricas de execução e qualidade
+```
+
+- `run_load` coordena a publicação epidemiológica.
+- `run_cnes` prepara o cadastro das unidades notificadoras.
+- `update_sinan` identifica e baixa os recortes necessários.
+- O preflight bloqueia uma execução quando dependências essenciais estão ausentes.
+- Escritas atômicas evitam que uma execução parcial pareça uma publicação válida.
+
+## Testes da pipeline: da transformação ao ambiente operacional
+
+São 26 arquivos de teste Python, com mais de 500 funções de teste, cobrindo os componentes de transformação e operação.
+
+| Grupo de testes | Exemplos de garantias |
+|---|---|
+| Bronze/Silver/Gold | schema, tipos, colunas canônicas, deduplicação e agregação |
+| SINAN | download, layouts, anos, fontes, arquivo vazio e atualização idempotente |
+| CNES/Esporo | normalização, unidades, coordenadas e vínculos territoriais |
+| IBGE | municípios, estados, DTB, histórico, códigos e validação de catálogo |
+| Escopo nacional | 27 UFs, municípios, filtros e exclusão de linhas fora do escopo |
+| PostgreSQL | migrations, carga transacional e leitura do serving |
+| Observabilidade | métricas, séries Pushgateway e role somente leitura do Grafana |
+| Operação | preflight, Compose, backup/restauração e configuração de produção |
+
+### Como o CI divide a confiança
+
+```text
+pytest -m "not integration"
+  → regras rápidas e determinísticas
+
+pytest -m integration + PostgreSQL 16
+  → carga, migrations e consultas reais
+
+Compose validation
+  → db + pipeline + Prometheus + Pushgateway + Grafana
+  → backup/restore + permissões + métricas + dashboards
+```
+
+Além dos testes funcionais, a pipeline usa fixtures Parquet, CSV, JSON, XLS e banco temporário para reproduzir contratos sem depender sempre de uma fonte externa. O objetivo é testar tanto a transformação quanto a publicação operacional.
+
+## Testes cruzados entre pipeline e Java
+
+```text
+fixture / execução da pipeline
+          ↓
+PostgreSQL + migrations
+          ↓
+Java integration test
+          ↓
+contrato HTTP / resposta do dashboard
+```
+
+- A pipeline testa se a publicação chega ao schema esperado.
+- O Java testa se consegue localizar a publicação corrente por doença, ano e timestamps.
+- Os testes verificam filtros nacionais, recortes territoriais e totais.
+- A identificação temporal impede que uma consulta misture snapshots.
+- A validação de Compose confirma que observabilidade e banco podem subir juntos.
+
+Essa divisão evita um falso positivo em que a pipeline passa isoladamente, mas a API não consegue consumir o dado publicado.
+
+## 6. Front-end: mapa, ranking e estado de navegação
+
+O front-end usa React, TanStack Query, React Simple Maps e GeoJSON estático carregado sob demanda.
+
+```text
+filtros → request epidemiológico → cache por escopo
+                                ↓
+                       mapa + ranking + contexto
+```
+
+- A cor dos mapas usa escala dinâmica baseada nos valores visíveis.
+- O mapa de estados usa códigos IBGE numéricos, iguais aos retornados pela API.
+- Tela cheia mantém a navegação territorial; “Voltar” retorna apenas um nível.
+- A sessão é restaurada por refresh token após recarregar a página.
+- A apresentação de dados exibe a data de extração do SINAN quando fornecida.
+
+## Validação territorial do Estado do Rio de Janeiro
+
+### Resultado cartográfico
+
+- 92 municípios validados.
+- 300 polígonos oficiais de distritos.
+- Nenhum arquivo distrital vazio.
+- Bairros carregados somente nos municípios com geometria oficial disponível.
+- Municípios com uma única divisão distrital podem abrir diretamente no ranking de bairros.
+- Municípios com múltiplos distritos abrem primeiro o ranking distrital e expandem o bairro quando possível.
+
+### Consistência de retorno
+
+```text
+bairro → distrito → município → estado RJ → Sudeste → Brasil
+```
+
+Ao voltar de um município, o estado de origem é preservado; não se retorna indevidamente à lista nacional de municípios.
+
+## Validação automatizada
+
+O front-end possui testes de build e E2E para:
+
+- regiões, estados e municípios nacionais;
+- 92 municípios do RJ;
+- distritos e bairros conforme disponibilidade;
+- ranking e mapa usando o mesmo recorte;
+- filtros de mês, ano, doença, sexo e faixa etária;
+- navegação em tela cheia;
+- sessão, login, logout e rotas protegidas;
+- fluxos de administrador e primeiro acesso.
+
+O CI do GitHub Actions executa lint, TypeScript, build, instalação do Chromium e a suíte de testes Playwright.
+
+## 7. Operação e integração dos repositórios
+
+```text
+NSS-pipeline       main  → ingestão, serving, métricas e migrações
+NSS Java           main  → API, autenticação e consultas PostgreSQL
+NSS-front-end      main  → interface, mapas e E2E
+nss-deployment      main  → Docker Compose, Caddy, Prometheus e Grafana
+```
+
+- As branches de trabalho foram integradas à `main`.
+- Os quatro worktrees foram verificados limpos e sincronizados com o GitHub.
+- O deployment local é composto por PostgreSQL, migrações, Java, frontend, Caddy, Prometheus, Pushgateway e Grafana.
+
+## O que a NSS V1 entrega agora
+
+::: {.callout-tip}
+Uma consulta epidemiológica nacional, rastreável e navegável territorialmente, com a mesma identidade de dados entre pipeline, banco, API, mapa e ranking.
+:::
+
+- Seis doenças com nomes completos e códigos técnicos.
+- Regiões, estados e municípios nacionais.
+- Detalhamento intramunicipal orientado por geometria oficial.
+- Metadados de extração e publicação.
+- Autenticação, sessão persistente e administração de usuários.
+- Observabilidade da pipeline e operação reproduzível em Docker.
+
+## Limites conhecidos e evolução futura
+
+- A presença de dados epidemiológicos não cria automaticamente um polígono oficial de bairro.
+- O vínculo territorial depende da unidade notificadora e da qualidade das fontes IBGE/CNES.
+- Novas doenças exigem contrato de código, dicionário e validação do schema de origem.
+- A atualização contínua exigirá política de publicação, retenção e auditoria de snapshots.
+
+## Encerramento
+
+```text
+Fonte preservada
+      + transformação auditável
+      + publicação identificável
+      + API contratual
+      + interface validada
+      = NSS pronta para evolução nacional
+```
+
+::: {.small}
+Repositórios: `nss-pipeline`, `Site-Sala-de-Situa-o-de-Saude-Java`, `nss-front-end` e `nss-deployment`.
+:::
