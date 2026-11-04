@@ -47,7 +47,9 @@ class EpidemiologyRepositoryTest {
       {null, null, "UNMAPPED_NOTIFICATION_UNIT", 17}
     };
     for (Object[] row : rows)
-      jdbc.update("INSERT INTO analytics.fato_casos VALUES ('3301009', ?, ?, ?, ?, 'F', 'test-batch', 'DENG', 2024, 3)", row);
+      jdbc.update(
+          "INSERT INTO analytics.fato_casos VALUES ('3301009', ?, ?, ?, ?, 'F', 'test-batch', 'DENG', 2024, 3)",
+          row);
     var repository = new EpidemiologyRepository(jdbc, "ano", "mes");
     var filter = new EpidemiologyFilter(null, null, null, null, null, "3301009", null);
     var districtIds =

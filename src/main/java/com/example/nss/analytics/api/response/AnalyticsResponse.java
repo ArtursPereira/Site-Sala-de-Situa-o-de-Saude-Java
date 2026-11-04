@@ -2,8 +2,8 @@ package com.example.nss.analytics.api.response;
 
 import com.example.nss.analytics.domain.CoverageStatus;
 import com.example.nss.analytics.domain.Geography;
-import java.util.List;
 import java.time.Instant;
+import java.util.List;
 
 public record AnalyticsResponse(
     String metric,

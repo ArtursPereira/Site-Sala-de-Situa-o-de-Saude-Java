@@ -29,7 +29,9 @@ class EpidemiologyControllerTest {
             null,
             null,
             new AnalyticsResponse.Coverage(CoverageStatus.UNAVAILABLE, 0L, 0L),
-            List.of(), null, null);
+            List.of(),
+            null,
+            null);
     when(service.unavailable(Geography.REGION, request.toFilter())).thenReturn(unavailable);
     when(service.unavailable(Geography.STATE, request.toFilter())).thenReturn(unavailable);
 

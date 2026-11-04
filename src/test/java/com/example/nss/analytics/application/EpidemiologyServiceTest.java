@@ -60,8 +60,10 @@ class EpidemiologyServiceTest {
   @Test
   void nationalIntramunicipalDrilldownUsesTheNationalCatalog() {
     when(catalog.forGeography("3302205", null, "DISTRICT"))
-        .thenReturn(List.of(new TerritoryCatalog.Entry(
-            "IBGE_DIST_330220505", "Itaperuna", "DISTRICT", "3302205", null, "AVAILABLE")));
+        .thenReturn(
+            List.of(
+                new TerritoryCatalog.Entry(
+                    "IBGE_DIST_330220505", "Itaperuna", "DISTRICT", "3302205", null, "AVAILABLE")));
     when(repository.totals(any(), eq(Geography.DISTRICT), any()))
         .thenReturn(new EpidemiologyTotals(0L, 0L));
     when(repository.aggregate(any(), eq(Geography.DISTRICT), any())).thenReturn(List.of());

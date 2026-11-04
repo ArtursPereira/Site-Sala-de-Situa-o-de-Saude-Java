@@ -61,7 +61,15 @@ public class EpidemiologyService {
     items.sort(Comparator.comparing(AnalyticsResponse.TerritoryItem::code));
     CoverageStatus status =
         total == 0 || mapped == total ? CoverageStatus.AVAILABLE : CoverageStatus.PARTIAL;
-    return response(geography, filter, total, status, mapped, total - mapped, items, repository.publicationMetadata(filter));
+    return response(
+        geography,
+        filter,
+        total,
+        status,
+        mapped,
+        total - mapped,
+        items,
+        repository.publicationMetadata(filter));
   }
 
   public AnalyticsResponse unavailable(Geography geography, EpidemiologyFilter filter) {

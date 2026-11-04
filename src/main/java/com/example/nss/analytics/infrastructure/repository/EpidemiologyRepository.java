@@ -141,22 +141,29 @@ public class EpidemiologyRepository {
 
   public PublicationMetadataRow publicationMetadata(EpidemiologyFilter f) {
     if (f.disease() == null || f.year() == null) return null;
-    StringBuilder sql = new StringBuilder(
-        "SELECT source_extracted_timestamp, added_at "
-            + "FROM analytics.pipeline_current_publication "
-            + "WHERE disease_codigo = :disease AND ano = :year");
-    MapSqlParameterSource parameters = new MapSqlParameterSource()
-        .addValue("disease", f.disease())
-        .addValue("year", f.year());
+    StringBuilder sql =
+        new StringBuilder(
+            "SELECT source_extracted_timestamp, added_at "
+                + "FROM analytics.pipeline_current_publication "
+                + "WHERE disease_codigo = :disease AND ano = :year");
+    MapSqlParameterSource parameters =
+        new MapSqlParameterSource().addValue("disease", f.disease()).addValue("year", f.year());
     if (f.municipalityCode() != null) {
       sql.append(" AND TRIM(cd_mun) = :municipalityCode");
       parameters.addValue("municipalityCode", f.municipalityCode());
     }
     sql.append(" ORDER BY added_at LIMIT 1");
-    return jdbc.query(sql.toString(), parameters, (resultSet, rowNumber) ->
-        new PublicationMetadataRow(
-            resultSet.getTimestamp("source_extracted_timestamp").toInstant(),
-            resultSet.getTimestamp("added_at").toInstant())).stream().findFirst().orElse(null);
+    return jdbc
+        .query(
+            sql.toString(),
+            parameters,
+            (resultSet, rowNumber) ->
+                new PublicationMetadataRow(
+                    resultSet.getTimestamp("source_extracted_timestamp").toInstant(),
+                    resultSet.getTimestamp("added_at").toInstant()))
+        .stream()
+        .findFirst()
+        .orElse(null);
   }
 
   private MapSqlParameterSource parameters(EpidemiologyFilter f, StringBuilder sql) {

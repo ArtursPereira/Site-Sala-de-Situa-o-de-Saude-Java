@@ -78,7 +78,8 @@ public class TerritoryCatalog {
       throw new IllegalStateException("Catálogo nacional de municípios não disponível", e);
     }
     if (result.size() < 5570) {
-      throw new IllegalStateException("Catálogo nacional de municípios incompleto: " + result.size());
+      throw new IllegalStateException(
+          "Catálogo nacional de municípios incompleto: " + result.size());
     }
     return Map.copyOf(result);
   }

@@ -50,7 +50,10 @@ class EpidemiologyRepositoryPostgresIT {
         "CREATE TABLE analytics.pipeline_current_publication (disease_codigo VARCHAR, ano INT, cd_mun VARCHAR, batch_id VARCHAR, source_extracted_timestamp TIMESTAMPTZ, added_at TIMESTAMPTZ)");
     jdbc.update(
         "INSERT INTO analytics.pipeline_current_publication VALUES (?, ?, ?, ?, now(), now())",
-        "DENG", 2024, "3301009", "20261104T000000Z");
+        "DENG",
+        2024,
+        "3301009",
+        "20261104T000000Z");
     repository = new EpidemiologyRepository(jdbc, "ano", "mes");
   }
 
