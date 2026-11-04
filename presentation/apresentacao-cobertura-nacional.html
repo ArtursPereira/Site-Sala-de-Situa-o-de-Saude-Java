@@ -1,0 +1,1401 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<script src="apresentacao-cobertura-nacional_files/libs/clipboard/clipboard.min.js"></script>
+<script src="apresentacao-cobertura-nacional_files/libs/quarto-html/tabby.min.js"></script>
+<script src="apresentacao-cobertura-nacional_files/libs/quarto-html/popper.min.js"></script>
+<script src="apresentacao-cobertura-nacional_files/libs/quarto-html/tippy.umd.min.js"></script>
+<link href="apresentacao-cobertura-nacional_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="apresentacao-cobertura-nacional_files/libs/quarto-html/light-border.css" rel="stylesheet">
+<link href="apresentacao-cobertura-nacional_files/libs/quarto-html/quarto-highlight-style-64a204ab8560d761af7679ceaba22944.css" rel="stylesheet" id="quarto-text-highlighting-styles"><meta charset="utf-8">
+  <meta name="generator" content="quarto-1.10.18">
+
+  <meta name="author" content="Zadoque Carneiro">
+  <meta name="author" content="Gabriel Costa">
+  <meta name="author" content="Artur Pereira">
+  <meta name="author" content="Luiz Gabriel">
+  <meta name="dcterms.date" content="2026-11-04">
+  <title>NSS — Cobertura Nacional</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+  <link rel="stylesheet" href="apresentacao-cobertura-nacional_files/libs/revealjs/dist/reset.css">
+  <link rel="stylesheet" href="apresentacao-cobertura-nacional_files/libs/revealjs/dist/reveal.css">
+  <style>
+    /* Default styles provided by pandoc.
+    ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
+    */
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: 1.5em;}
+    div.column{flex: auto;}
+    @media screen {
+    div.columns{gap: min(4vw, 1.5em);}
+    div.column{overflow-x: auto;}
+    }
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    ul.task-list{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+      vertical-align: middle;
+    }
+    /* CSS for syntax highlighting */
+    html { -webkit-text-size-adjust: 100%; }
+    pre > code.sourceCode { white-space: pre; position: relative; }
+    pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+    pre > code.sourceCode > span:empty { height: 1.2em; }
+    .sourceCode { overflow: visible; }
+    code.sourceCode > span { color: inherit; text-decoration: inherit; }
+    div.sourceCode { margin: 1em 0; }
+    pre.sourceCode { margin: 0; }
+    @media screen {
+    div.sourceCode { overflow: auto; }
+    }
+    @media print {
+    pre > code.sourceCode { white-space: pre-wrap; }
+    pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+    }
+    pre.numberSource code
+      { counter-reset: source-line 0; }
+    pre.numberSource code > span
+      { position: relative; left: -4em; counter-increment: source-line; }
+    pre.numberSource code > span > a:first-child::before
+      { content: counter(source-line);
+        position: relative; left: -1em; text-align: right; vertical-align: baseline;
+        border: none; display: inline-block;
+        -webkit-touch-callout: none; -webkit-user-select: none;
+        -khtml-user-select: none; -moz-user-select: none;
+        -ms-user-select: none; user-select: none;
+        padding: 0 4px; width: 4em;
+        color: #aaaaaa;
+      }
+    pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+    div.sourceCode
+      { color: #003b4f; background-color: #f1f3f5; }
+    @media screen {
+    pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+    }
+    code span { color: #003b4f; } /* Normal */
+    code span.al { color: #ad0000; } /* Alert */
+    code span.an { color: #5e5e5e; } /* Annotation */
+    code span.at { color: #657422; } /* Attribute */
+    code span.bn { color: #ad0000; } /* BaseN */
+    code span.bu { } /* BuiltIn */
+    code span.cf { color: #003b4f; font-weight: bold; } /* ControlFlow */
+    code span.ch { color: #20794d; } /* Char */
+    code span.cn { color: #8f5902; } /* Constant */
+    code span.co { color: #5e5e5e; } /* Comment */
+    code span.cv { color: #5e5e5e; font-style: italic; } /* CommentVar */
+    code span.do { color: #5e5e5e; font-style: italic; } /* Documentation */
+    code span.dt { color: #ad0000; } /* DataType */
+    code span.dv { color: #ad0000; } /* DecVal */
+    code span.er { color: #ad0000; } /* Error */
+    code span.ex { } /* Extension */
+    code span.fl { color: #ad0000; } /* Float */
+    code span.fu { color: #4758ab; } /* Function */
+    code span.im { color: #00769e; } /* Import */
+    code span.in { color: #5e5e5e; } /* Information */
+    code span.kw { color: #003b4f; font-weight: bold; } /* Keyword */
+    code span.op { color: #5e5e5e; } /* Operator */
+    code span.ot { color: #003b4f; } /* Other */
+    code span.pp { color: #ad0000; } /* Preprocessor */
+    code span.sc { color: #5e5e5e; } /* SpecialChar */
+    code span.ss { color: #20794d; } /* SpecialString */
+    code span.st { color: #20794d; } /* String */
+    code span.va { color: #111111; } /* Variable */
+    code span.vs { color: #20794d; } /* VerbatimString */
+    code span.wa { color: #5e5e5e; font-style: italic; } /* Warning */
+  </style>
+  <link rel="stylesheet" href="apresentacao-cobertura-nacional_files/libs/revealjs/dist/theme/quarto-e2f229337ccd40e1923670fda953dc4c.css">
+  <link href="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.css" rel="stylesheet">
+  <link href="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/reveal-menu/menu.css" rel="stylesheet">
+  <link href="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/reveal-menu/quarto-menu.css" rel="stylesheet">
+  <link href="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/quarto-support/footer.css" rel="stylesheet">
+  <style type="text/css">
+    .reveal div.sourceCode {
+      margin: 0;
+      overflow: auto;
+    }
+    .reveal div.hanging-indent {
+      margin-left: 1em;
+      text-indent: -1em;
+    }
+    .reveal .slide:not(.center) {
+      height: 100%;
+    }
+    .reveal .slide.scrollable {
+      overflow-y: auto;
+    }
+    .reveal .footnotes {
+      height: 100%;
+      overflow-y: auto;
+    }
+    .reveal .slide .absolute {
+      position: absolute;
+      display: block;
+    }
+    .reveal .footnotes ol {
+      counter-reset: ol;
+      list-style-type: none; 
+      margin-left: 0;
+    }
+    .reveal .footnotes ol li:before {
+      counter-increment: ol;
+      content: counter(ol) ". "; 
+    }
+    .reveal .footnotes ol li > p:first-child {
+      display: inline-block;
+    }
+    .reveal .slide ul,
+    .reveal .slide ol {
+      margin-bottom: 0.5em;
+    }
+    .reveal .slide ul li,
+    .reveal .slide ol li {
+      margin-top: 0.4em;
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide ul[role="tablist"] li {
+      margin-bottom: 0;
+    }
+    .reveal .slide ul li > *:first-child,
+    .reveal .slide ol li > *:first-child {
+      margin-block-start: 0;
+    }
+    .reveal .slide ul li > *:last-child,
+    .reveal .slide ol li > *:last-child {
+      margin-block-end: 0;
+    }
+    .reveal .slide .columns:nth-child(3) {
+      margin-block-start: 0.8em;
+    }
+    .reveal blockquote {
+      box-shadow: none;
+    }
+    .reveal .tippy-content>* {
+      margin-top: 0.2em;
+      margin-bottom: 0.7em;
+    }
+    .reveal .tippy-content>*:last-child {
+      margin-bottom: 0.2em;
+    }
+    .reveal .slide > img.stretch.quarto-figure-center,
+    .reveal .slide > img.r-stretch.quarto-figure-center {
+      display: block;
+      margin-left: auto;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-left,
+    .reveal .slide > img.r-stretch.quarto-figure-left  {
+      display: block;
+      margin-left: 0;
+      margin-right: auto; 
+    }
+    .reveal .slide > img.stretch.quarto-figure-right,
+    .reveal .slide > img.r-stretch.quarto-figure-right  {
+      display: block;
+      margin-left: auto;
+      margin-right: 0; 
+    }
+  </style>
+</head>
+<body class="quarto-light">
+  <div class="reveal">
+    <div class="slides">
+
+<section id="title-slide" class="quarto-title-block center">
+  <h1 class="title">NSS — Cobertura Nacional</h1>
+  <p class="subtitle">Evolução da V1, arquitetura e validação de produção</p>
+
+<div class="quarto-title-authors">
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Zadoque Carneiro
+</div>
+</div>
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Gabriel Costa
+</div>
+</div>
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Artur Pereira
+</div>
+</div>
+<div class="quarto-title-author">
+<div class="quarto-title-author-name">
+Luiz Gabriel
+</div>
+</div>
+</div>
+
+  <p class="date">2026-11-04</p>
+</section>
+<section id="o-que-mudou-desde-a-última-apresentação" class="slide level2">
+<h2>O que mudou desde a última apresentação</h2>
+<div class="pipeline-flow">
+<p>SINAN + CNES + IBGE → Pipeline Python → PostgreSQL → API Java → Front-end nacional</p>
+</div>
+<ul>
+<li>A apresentação anterior descrevia uma V1 concentrada em quatro municípios.</li>
+<li>O sistema agora consulta recortes nacionais por região, estado e município.</li>
+<li>O Estado do Rio de Janeiro passou a ter validação territorial específica dos 92 municípios.</li>
+<li>A evolução foi integrada à <code>main</code> dos quatro repositórios.</li>
+</ul>
+</section>
+<section id="sumário" class="slide level2">
+<h2>Sumário</h2>
+<ol type="1">
+<li>O novo escopo</li>
+<li>Cobertura epidemiológica e territorial</li>
+<li>Arquitetura integrada</li>
+<li>Pipeline, PostgreSQL e observabilidade</li>
+<li>API Java e segurança</li>
+<li>Front-end e validação do RJ</li>
+<li>Operação, CI e próximos limites</li>
+</ol>
+</section>
+<section id="o-novo-escopo-cobertura-nacional" class="slide level2">
+<h2>1. O novo escopo: cobertura nacional</h2>
+<h3 id="o-que-o-usuário-pode-explorar">O que o usuário pode explorar</h3>
+<ul>
+<li>Brasil → regiões → estados → municípios.</li>
+<li>Filtros por doença, ano, mês, sexo e faixa etária.</li>
+<li>Ranking e mapa sincronizados com o mesmo recorte consultado.</li>
+<li>Seletores dependentes: uma região restringe os estados; um estado restringe os municípios.</li>
+<li>Drill-down intramunicipal quando existe território oficial compatível.</li>
+</ul>
+<h3 id="semântica-da-métrica">Semântica da métrica</h3>
+<p>O produto apresenta <strong>notificações da unidade notificadora</strong>. A localização não deve ser interpretada automaticamente como residência ou local de infecção.</p>
+<div class="callout callout-note callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Note</strong></p>
+</div>
+<div class="callout-content">
+<p>“Cobertura nacional” significa disponibilidade do recorte epidemiológico nacional na aplicação. A cobertura territorial de distritos e bairros continua dependendo da existência de geometria e do vínculo oficial disponível.</p>
+</div>
+</div>
+</div>
+</section>
+<section id="doenças-abrangidas-catálogo-sinan" class="slide level2">
+<h2>2. Doenças abrangidas — catálogo SINAN</h2>
+<p>A pipeline reconhece <strong>49 grupos de doenças/notificações homologados pelo PySUS/SINAN</strong>. O código permanece como identidade técnica no banco e o nome completo é usado na interface.</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Código</th>
+<th>Nome completo</th>
+<th>Código</th>
+<th>Nome completo</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>DENG</code></td>
+<td>Dengue</td>
+<td><code>CHIK</code></td>
+<td>Chikungunya</td>
+</tr>
+<tr class="even">
+<td><code>ZIKA</code></td>
+<td>Zika</td>
+<td><code>TUBE</code></td>
+<td>Tuberculose</td>
+</tr>
+<tr class="odd">
+<td><code>HANS</code></td>
+<td>Hanseníase</td>
+<td><code>HEPA</code></td>
+<td>Hepatites virais</td>
+</tr>
+<tr class="even">
+<td><code>SIFA</code></td>
+<td>Sífilis adquirida</td>
+<td><code>SIFC</code></td>
+<td>Sífilis congênita</td>
+</tr>
+<tr class="odd">
+<td><code>LEPT</code></td>
+<td>Leptospirose</td>
+<td><code>MENI</code></td>
+<td>Meningite</td>
+</tr>
+<tr class="even">
+<td><code>FMAC</code></td>
+<td>Febre maculosa</td>
+<td><code>TOXC</code></td>
+<td>Toxoplasmose congênita</td>
+</tr>
+<tr class="odd">
+<td><code>TOXG</code></td>
+<td>Toxoplasmose gestacional</td>
+<td><code>ACBI</code></td>
+<td>Acidente de trabalho com material biológico</td>
+</tr>
+<tr class="even">
+<td><code>ACGR</code></td>
+<td>Acidente de trabalho</td>
+<td><code>ANIM</code></td>
+<td>Acidente por animais peçonhentos</td>
+</tr>
+<tr class="odd">
+<td><code>ANTR</code></td>
+<td>Atendimento antirrábico</td>
+<td><code>BOTU</code></td>
+<td>Botulismo</td>
+</tr>
+<tr class="even">
+<td><code>CANC</code></td>
+<td>Câncer relacionado ao trabalho</td>
+<td><code>CHAG</code></td>
+<td>Doença de Chagas aguda</td>
+</tr>
+<tr class="odd">
+<td><code>ESQU</code></td>
+<td>Esquistossomose</td>
+<td><code>COLE</code></td>
+<td>Cólera</td>
+</tr>
+<tr class="even">
+<td><code>COQU</code></td>
+<td>Coqueluche</td>
+<td><code>DERM</code></td>
+<td>Dermatoses ocupacionais</td>
+</tr>
+<tr class="odd">
+<td><code>DIFT</code></td>
+<td>Difteria</td>
+<td><code>EXAN</code></td>
+<td>Doenças exantemáticas</td>
+</tr>
+<tr class="even">
+<td><code>FTIF</code></td>
+<td>Febre tifoide</td>
+<td><code>HANT</code></td>
+<td>Hantavirose</td>
+</tr>
+<tr class="odd">
+<td><code>IEXO</code></td>
+<td>Intoxicação exógena</td>
+<td><code>INFL</code></td>
+<td>Influenza pandêmica</td>
+</tr>
+<tr class="even">
+<td><code>LEIV</code></td>
+<td>Leishmaniose visceral</td>
+<td><code>LTAN</code></td>
+<td>Leishmaniose tegumentar americana</td>
+</tr>
+<tr class="odd">
+<td><code>LERD</code></td>
+<td>LER/Dort</td>
+<td><code>MALA</code></td>
+<td>Malária</td>
+</tr>
+<tr class="even">
+<td><code>MENT</code></td>
+<td>Transtornos mentais relacionados ao trabalho</td>
+<td><code>NTRA</code></td>
+<td>Notificação de tracoma</td>
+</tr>
+<tr class="odd">
+<td><code>PAIR</code></td>
+<td>Perda auditiva por ruído relacionada ao trabalho</td>
+<td><code>PFAN</code></td>
+<td>Paralisia flácida aguda</td>
+</tr>
+</tbody>
+</table>
+<div class="small">
+<p>Catálogo técnico conforme <code>DISEASE_NAMES</code> da pipeline e <code>SINAN.group_definitions</code> do PySUS 2.11.7. O endpoint Java publica os códigos efetivamente presentes nas publicações disponíveis.</p>
+</div>
+</section>
+<section id="catálogo-sinan-continuação" class="slide level2">
+<h2>Catálogo SINAN — continuação</h2>
+<table class="caption-top">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Código</th>
+<th>Nome completo</th>
+<th>Código</th>
+<th>Nome completo</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>PNEU</code></td>
+<td>Pneumoconioses relacionadas ao trabalho</td>
+<td><code>PEST</code></td>
+<td>Peste</td>
+</tr>
+<tr class="even">
+<td><code>RAIV</code></td>
+<td>Raiva</td>
+<td><code>SDTA</code></td>
+<td>Surto de doenças transmitidas por alimentos</td>
+</tr>
+<tr class="odd">
+<td><code>SRC</code></td>
+<td>Síndrome da rubéola congênita</td>
+<td><code>SIFG</code></td>
+<td>Sífilis em gestante</td>
+</tr>
+<tr class="even">
+<td><code>TETA</code></td>
+<td>Tétano acidental</td>
+<td><code>TETN</code></td>
+<td>Tétano neonatal</td>
+</tr>
+<tr class="odd">
+<td><code>TRAC</code></td>
+<td>Inquérito de tracoma</td>
+<td><code>VARC</code></td>
+<td>Varicela</td>
+</tr>
+<tr class="even">
+<td><code>VIOL</code></td>
+<td>Violência doméstica, sexual ou outras violências</td>
+<td></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>Os snapshots epidemiológicos usados na validação visual anterior cobrem seis códigos (<code>DENG</code>, <code>CHIK</code>, <code>ZIKA</code>, <code>FMAC</code>, <code>TOXC</code> e <code>TOXG</code>); o catálogo da pipeline é mais amplo e permite publicar os demais grupos conforme os recortes SINAN estejam disponíveis e validados.</p>
+</section>
+<section id="cobertura-temporal-e-publicação" class="slide level2">
+<h2>Cobertura temporal e publicação</h2>
+<ul>
+<li>A carga e a consulta são particionadas por doença e ano.</li>
+<li>O escopo validado inclui 2023, 2024, 2025 e 2026 nos snapshots disponíveis.</li>
+<li>O filtro “todos os meses” consulta o ano inteiro, sem restringir a um mês específico.</li>
+<li>O filtro “todos os anos” mantém o mês escolhido e agrega os anos publicados.</li>
+</ul>
+<p>Cada resposta pode informar:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb1-1"><a href="" aria-label="1"></a>sourceExtractedAt  → quando o dado SINAN foi extraído</span>
+<span id="cb1-2"><a href="" aria-label="2"></a>addedAt            → quando o registro foi publicado na camada de serving</span>
+<span id="cb1-3"><a href="" aria-label="3"></a>coverage           → status, total mapeado e total não mapeado</span>
+<span id="cb1-4"><a href="" aria-label="4"></a>filters            → filtros efetivamente aplicados</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="arquitetura-integrada" class="slide level2">
+<h2>3. Arquitetura integrada</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb2-1"><a href="" aria-label="1"></a>SINAN / PySUS                         IBGE / CNES</span>
+<span id="cb2-2"><a href="" aria-label="2"></a>       │                                  │</span>
+<span id="cb2-3"><a href="" aria-label="3"></a>       ├── Bronze preservado               ├── Catálogo territorial</span>
+<span id="cb2-4"><a href="" aria-label="4"></a>       ├── Silver normalizado              └── Unidades notificadoras</span>
+<span id="cb2-5"><a href="" aria-label="5"></a>       │                                  │</span>
+<span id="cb2-6"><a href="" aria-label="6"></a>       └──────────── Pipeline Python ─────┘</span>
+<span id="cb2-7"><a href="" aria-label="7"></a>                          │</span>
+<span id="cb2-8"><a href="" aria-label="8"></a>                   Gold / Serving</span>
+<span id="cb2-9"><a href="" aria-label="9"></a>                          │</span>
+<span id="cb2-10"><a href="" aria-label="10"></a>                    PostgreSQL</span>
+<span id="cb2-11"><a href="" aria-label="11"></a>                          │</span>
+<span id="cb2-12"><a href="" aria-label="12"></a>              API Java / Spring Boot</span>
+<span id="cb2-13"><a href="" aria-label="13"></a>                          │</span>
+<span id="cb2-14"><a href="" aria-label="14"></a>                React + mapas GeoJSON</span>
+<span id="cb2-15"><a href="" aria-label="15"></a>                          │</span>
+<span id="cb2-16"><a href="" aria-label="16"></a>                   Caddy / Docker</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<h3 id="responsabilidade-de-cada-camada">Responsabilidade de cada camada</h3>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Camada</th>
+<th>Responsabilidade</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bronze</td>
+<td>Preservar a fonte recebida e o contexto da extração</td>
+</tr>
+<tr class="even">
+<td>Silver</td>
+<td>Normalizar nomes, tipos, códigos, datas e regras de qualidade</td>
+</tr>
+<tr class="odd">
+<td>Gold/Serving</td>
+<td>Agregar notificações e materializar o recorte consultável</td>
+</tr>
+<tr class="even">
+<td>PostgreSQL</td>
+<td>Persistir dados, metadados de publicação e consultas analíticas</td>
+</tr>
+<tr class="odd">
+<td>Java</td>
+<td>Expor contratos, validar filtros, aplicar autorização e consultar o banco</td>
+</tr>
+<tr class="even">
+<td>Front-end</td>
+<td>Apresentar mapas, rankings, filtros, sessão e fluxos administrativos</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="pipeline-sinan-cnes-e-ibge" class="slide level2">
+<h2>Pipeline: SINAN, CNES e IBGE</h2>
+<h3 id="sinan">SINAN</h3>
+<ul>
+<li>Atualização idempotente por doença × ano.</li>
+<li>Preservação dos arquivos de origem e manifestação do layout.</li>
+<li>Deduplicação e validação antes da agregação.</li>
+<li>Publicação somente após a carga concluir com sucesso.</li>
+</ul>
+<h3 id="cnes">CNES</h3>
+<ul>
+<li>Cadastro das unidades notificadoras e suas coordenadas.</li>
+<li>Deduplicação por <code>cd_unidade</code>.</li>
+<li>Vínculo da unidade com município, distrito e bairro quando possível.</li>
+<li>Registros sem vínculo permanecem contabilizados, mas são marcados como não mapeados.</li>
+</ul>
+<h3 id="ibge">IBGE</h3>
+<ul>
+<li>Catálogo nacional de estados e municípios.</li>
+<li>Malha oficial de municípios.</li>
+<li>Malha de distritos do Estado do Rio de Janeiro.</li>
+<li>Malha de bairros disponível somente onde a fonte oficial fornece geometria compatível.</li>
+</ul>
+</section>
+<section id="postgresql-e-metadados-de-publicação" class="slide level2">
+<h2>4. PostgreSQL e metadados de publicação</h2>
+<p>O serving passou a guardar a identidade temporal da publicação. Isso evita que a consulta escolha uma linha arbitrária por meio de <code>MAX</code> quando o contrato exige a publicação exata.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource sql number-lines code-with-copy"><code class="sourceCode sql"><span id="cb3-1"><a href="" aria-label="1"></a><span class="kw">WHERE</span> disease_code <span class="op">=</span> <span class="ch">:disease</span></span>
+<span id="cb3-2"><a href="" aria-label="2"></a>  <span class="kw">AND</span> reference_year <span class="op">=</span> <span class="ch">:year</span></span>
+<span id="cb3-3"><a href="" aria-label="3"></a>  <span class="kw">AND</span> source_extracted_at <span class="op">=</span> <span class="ch">:sourceExtractedAt</span></span>
+<span id="cb3-4"><a href="" aria-label="4"></a>  <span class="kw">AND</span> added_at <span class="op">=</span> <span class="ch">:addedAt</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<h3 id="benefícios">Benefícios</h3>
+<ul>
+<li>Reprodutibilidade de uma resposta já publicada.</li>
+<li>Rastreabilidade entre arquivo SINAN, transformação e API.</li>
+<li>Possibilidade de comparar duas publicações do mesmo recorte.</li>
+<li>Exposição dos timestamps ao front-end para informar a origem dos dados.</li>
+</ul>
+</section>
+<section id="observabilidade" class="slide level2">
+<h2>Observabilidade</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb4-1"><a href="" aria-label="1"></a>Pipeline → métricas Prometheus → dashboards/alertas Grafana</span>
+<span id="cb4-2"><a href="" aria-label="2"></a>                         │</span>
+<span id="cb4-3"><a href="" aria-label="3"></a>                         ├── execução e duração</span>
+<span id="cb4-4"><a href="" aria-label="4"></a>                         ├── registros lidos e publicados</span>
+<span id="cb4-5"><a href="" aria-label="5"></a>                         ├── falhas e status de carga</span>
+<span id="cb4-6"><a href="" aria-label="6"></a>                         └── qualidade e cobertura territorial</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>Prometheus coleta as métricas expostas pela pipeline.</li>
+<li>Grafana apresenta o estado das execuções e dimensões de publicação.</li>
+<li>O PostgreSQL continua sendo a fonte dos dados epidemiológicos; Prometheus não substitui a consulta analítica.</li>
+</ul>
+</section>
+<section id="api-java-contrato-nacional" class="slide level2">
+<h2>5. API Java: contrato nacional</h2>
+<h3 id="principais-endpoints">Principais endpoints</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb5-1"><a href="" aria-label="1"></a>GET /api/v1/diseases</span>
+<span id="cb5-2"><a href="" aria-label="2"></a>GET /api/v1/metadata</span>
+<span id="cb5-3"><a href="" aria-label="3"></a>GET /api/v1/epidemiology/region</span>
+<span id="cb5-4"><a href="" aria-label="4"></a>GET /api/v1/epidemiology/state</span>
+<span id="cb5-5"><a href="" aria-label="5"></a>GET /api/v1/epidemiology/municipalities</span>
+<span id="cb5-6"><a href="" aria-label="6"></a>GET /api/v1/epidemiology/districts</span>
+<span id="cb5-7"><a href="" aria-label="7"></a>GET /api/v1/epidemiology/neighborhoods</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Os endpoints epidemiológicos recebem filtros comuns e escopo territorial:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb6-1"><a href="" aria-label="1"></a>disease, year, month, sex, ageBand</span>
+<span id="cb6-2"><a href="" aria-label="2"></a>regionCode, ufCode, municipalityCode, districtCode</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>As respostas normalizam os itens para o mesmo formato de ranking, incluindo total oficial, status de cobertura, timestamps e filtros aplicados.</p>
+</section>
+<section id="arquitetura-do-java-módulos-e-dependências" class="slide level2">
+<h2>Arquitetura do Java: módulos e dependências</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb7-1"><a href="" aria-label="1"></a>com.example.nss</span>
+<span id="cb7-2"><a href="" aria-label="2"></a>├── analytics</span>
+<span id="cb7-3"><a href="" aria-label="3"></a>│   ├── api/response          contratos de saída</span>
+<span id="cb7-4"><a href="" aria-label="4"></a>│   ├── application           casos de uso e regras de consulta</span>
+<span id="cb7-5"><a href="" aria-label="5"></a>│   ├── domain                filtros, geografia e cobertura</span>
+<span id="cb7-6"><a href="" aria-label="6"></a>│   ├── infrastructure        JDBC, RowMappers e repositórios</span>
+<span id="cb7-7"><a href="" aria-label="7"></a>│   └── web/controller         endpoints HTTP</span>
+<span id="cb7-8"><a href="" aria-label="8"></a>├── user</span>
+<span id="cb7-9"><a href="" aria-label="9"></a>│   ├── api                    requests, responses e mappers</span>
+<span id="cb7-10"><a href="" aria-label="10"></a>│   ├── application            login, primeiro acesso e administração</span>
+<span id="cb7-11"><a href="" aria-label="11"></a>│   ├── domain                 usuário, tokens e sessões</span>
+<span id="cb7-12"><a href="" aria-label="12"></a>│   ├── infrastructure         persistência e bootstrap do admin</span>
+<span id="cb7-13"><a href="" aria-label="13"></a>│   ├── security               JWT, refresh e autorização</span>
+<span id="cb7-14"><a href="" aria-label="14"></a>│   └── web/controller          autenticação e gestão de usuários</span>
+<span id="cb7-15"><a href="" aria-label="15"></a>└── shared                     erros HTTP e notificações por e-mail</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<h3 id="fluxo-de-uma-consulta-epidemiológica">Fluxo de uma consulta epidemiológica</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb8-1"><a href="" aria-label="1"></a>HTTP request</span>
+<span id="cb8-2"><a href="" aria-label="2"></a>  → controller valida entrada</span>
+<span id="cb8-3"><a href="" aria-label="3"></a>  → service resolve escopo e publicação</span>
+<span id="cb8-4"><a href="" aria-label="4"></a>  → repository executa SQL parametrizado</span>
+<span id="cb8-5"><a href="" aria-label="5"></a>  → mapper converte linha em resultado</span>
+<span id="cb8-6"><a href="" aria-label="6"></a>  → response devolve itens, total, cobertura e metadados</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>Controllers não acessam diretamente o PostgreSQL.</li>
+<li>O domínio não depende de classes de persistência.</li>
+<li>Repositórios isolam SQL, <code>RowMapper</code> e detalhes do JDBC.</li>
+<li>O catálogo territorial resolve códigos IBGE e escopos nacionais.</li>
+<li>Flyway versiona a evolução do schema.</li>
+</ul>
+</section>
+<section id="backend-arquitetura-e-segurança" class="slide level2">
+<h2>Backend: arquitetura e segurança</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb9-1"><a href="" aria-label="1"></a>web/controller</span>
+<span id="cb9-2"><a href="" aria-label="2"></a>      ↓</span>
+<span id="cb9-3"><a href="" aria-label="3"></a>application service</span>
+<span id="cb9-4"><a href="" aria-label="4"></a>      ↓</span>
+<span id="cb9-5"><a href="" aria-label="5"></a>domain / ports</span>
+<span id="cb9-6"><a href="" aria-label="6"></a>      ↓</span>
+<span id="cb9-7"><a href="" aria-label="7"></a>infrastructure repository</span>
+<span id="cb9-8"><a href="" aria-label="8"></a>      ↓</span>
+<span id="cb9-9"><a href="" aria-label="9"></a>PostgreSQL</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>Spring Boot com módulos de analytics, usuários e infraestrutura compartilhada.</li>
+<li>Separação entre DTOs de API, domínio e entidades de persistência.</li>
+<li>JWT para autenticação e refresh sessions persistidas.</li>
+<li>CSRF, rate limiting, rotação e revogação de refresh tokens.</li>
+<li>Bootstrap do primeiro administrador por variáveis de ambiente.</li>
+<li>Autorização separada para administração de usuários.</li>
+</ul>
+</section>
+<section id="testes-do-java-cobertura-em-camadas" class="slide level2">
+<h2>Testes do Java: cobertura em camadas</h2>
+<p>O repositório Java mantém 36 classes de teste, com 153 métodos anotados para teste, organizados em testes rápidos e testes de integração.</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Camada</th>
+<th>O que é validado</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Domínio</td>
+<td>Filtros, normalização de e-mail, regras de cobertura e escopo</td>
+</tr>
+<tr class="even">
+<td>Application</td>
+<td>Serviços de epidemiologia, catálogo territorial, usuários e rate limiting</td>
+</tr>
+<tr class="odd">
+<td>API/Web MVC</td>
+<td>Status HTTP, validação, contratos, erros e autorização</td>
+</tr>
+<tr class="even">
+<td>Persistência</td>
+<td>Repositórios, migrations, publicações e sessões no PostgreSQL</td>
+</tr>
+<tr class="odd">
+<td>Segurança</td>
+<td>JWT, refresh rotation, revogação, CSRF e isolamento administrativo</td>
+</tr>
+<tr class="even">
+<td>Arquitetura</td>
+<td>Regras de dependência entre camadas com ArchUnit</td>
+</tr>
+<tr class="odd">
+<td>Integração</td>
+<td>Fluxos completos com PostgreSQL e Testcontainers</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quality-gates-do-ci">Quality gates do CI</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb10-1"><a href="" aria-label="1"></a>./mvnw verify</span>
+<span id="cb10-2"><a href="" aria-label="2"></a>  ├── Surefire: testes unitários (*Test)</span>
+<span id="cb10-3"><a href="" aria-label="3"></a>  ├── Failsafe: testes de integração (*IT)</span>
+<span id="cb10-4"><a href="" aria-label="4"></a>  ├── JaCoCo: 90% linhas, 75% branches, 88% métodos</span>
+<span id="cb10-5"><a href="" aria-label="5"></a>  ├── Spotless + Checkstyle + PMD</span>
+<span id="cb10-6"><a href="" aria-label="6"></a>  └── Flyway, compilação e empacotamento</span>
+<span id="cb10-7"><a href="" aria-label="7"></a></span>
+<span id="cb10-8"><a href="" aria-label="8"></a>./mvnw test-compile org.pitest:pitest-maven:mutationCoverage</span>
+<span id="cb10-9"><a href="" aria-label="9"></a>  └── analytics: mutation score ≥ 80% e test strength ≥ 80%</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>O CI ainda constrói a imagem de produção e verifica seus metadados. Assim, o pipeline de qualidade cobre comportamento, arquitetura, banco, segurança, mutações e empacotamento.</p>
+</section>
+<section id="arquitetura-da-pipeline-python" class="slide level2">
+<h2>Arquitetura da pipeline Python</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb11-1"><a href="" aria-label="1"></a>app/pipeline</span>
+<span id="cb11-2"><a href="" aria-label="2"></a>├── sinan/                    origem, Bronze, Silver e Gold</span>
+<span id="cb11-3"><a href="" aria-label="3"></a>├── cnes/                     ingestão e normalização das unidades</span>
+<span id="cb11-4"><a href="" aria-label="4"></a>├── reference/ibge/           catálogo, DTB, histórico e validação</span>
+<span id="cb11-5"><a href="" aria-label="5"></a>├── esporo/                   regras de dados territoriais auxiliares</span>
+<span id="cb11-6"><a href="" aria-label="6"></a>├── observability/            métricas, Pushgateway e Grafana</span>
+<span id="cb11-7"><a href="" aria-label="7"></a>├── atomic_io.py              escrita atômica e manifests</span>
+<span id="cb11-8"><a href="" aria-label="8"></a>├── scope.py                  escopo nacional e validações</span>
+<span id="cb11-9"><a href="" aria-label="9"></a>├── preflight.py              pré-condições de operação</span>
+<span id="cb11-10"><a href="" aria-label="10"></a>├── run*.py / load*.py        orquestração das execuções</span>
+<span id="cb11-11"><a href="" aria-label="11"></a>└── territory_mapping.py      vínculo unidade → território</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<h3 id="fluxo-de-dados">Fluxo de dados</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb12-1"><a href="" aria-label="1"></a>source.py</span>
+<span id="cb12-2"><a href="" aria-label="2"></a>   ↓</span>
+<span id="cb12-3"><a href="" aria-label="3"></a>bronze.py  ── preserva arquivo e schema observado</span>
+<span id="cb12-4"><a href="" aria-label="4"></a>   ↓</span>
+<span id="cb12-5"><a href="" aria-label="5"></a>silver.py  ── tipos, códigos, nomes e regras canônicas</span>
+<span id="cb12-6"><a href="" aria-label="6"></a>   ↓</span>
+<span id="cb12-7"><a href="" aria-label="7"></a>gold.py    ── agregação por doença, ano e território</span>
+<span id="cb12-8"><a href="" aria-label="8"></a>   ↓</span>
+<span id="cb12-9"><a href="" aria-label="9"></a>load.py    ── transação, migrations e serving PostgreSQL</span>
+<span id="cb12-10"><a href="" aria-label="10"></a>   ↓</span>
+<span id="cb12-11"><a href="" aria-label="11"></a>metrics.py ── métricas de execução e qualidade</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li><code>run_load</code> coordena a publicação epidemiológica.</li>
+<li><code>run_cnes</code> prepara o cadastro das unidades notificadoras.</li>
+<li><code>update_sinan</code> identifica e baixa os recortes necessários.</li>
+<li>O preflight bloqueia uma execução quando dependências essenciais estão ausentes.</li>
+<li>Escritas atômicas evitam que uma execução parcial pareça uma publicação válida.</li>
+</ul>
+</section>
+<section id="testes-da-pipeline-da-transformação-ao-ambiente-operacional" class="slide level2">
+<h2>Testes da pipeline: da transformação ao ambiente operacional</h2>
+<p>São 26 arquivos de teste Python, com mais de 500 funções de teste, cobrindo os componentes de transformação e operação.</p>
+<table class="caption-top">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Grupo de testes</th>
+<th>Exemplos de garantias</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Bronze/Silver/Gold</td>
+<td>schema, tipos, colunas canônicas, deduplicação e agregação</td>
+</tr>
+<tr class="even">
+<td>SINAN</td>
+<td>download, layouts, anos, fontes, arquivo vazio e atualização idempotente</td>
+</tr>
+<tr class="odd">
+<td>CNES/Esporo</td>
+<td>normalização, unidades, coordenadas e vínculos territoriais</td>
+</tr>
+<tr class="even">
+<td>IBGE</td>
+<td>municípios, estados, DTB, histórico, códigos e validação de catálogo</td>
+</tr>
+<tr class="odd">
+<td>Escopo nacional</td>
+<td>27 UFs, municípios, filtros e exclusão de linhas fora do escopo</td>
+</tr>
+<tr class="even">
+<td>PostgreSQL</td>
+<td>migrations, carga transacional e leitura do serving</td>
+</tr>
+<tr class="odd">
+<td>Observabilidade</td>
+<td>métricas, séries Pushgateway e role somente leitura do Grafana</td>
+</tr>
+<tr class="even">
+<td>Operação</td>
+<td>preflight, Compose, backup/restauração e configuração de produção</td>
+</tr>
+</tbody>
+</table>
+<h3 id="como-o-ci-divide-a-confiança">Como o CI divide a confiança</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb13-1"><a href="" aria-label="1"></a>pytest -m "not integration"</span>
+<span id="cb13-2"><a href="" aria-label="2"></a>  → regras rápidas e determinísticas</span>
+<span id="cb13-3"><a href="" aria-label="3"></a></span>
+<span id="cb13-4"><a href="" aria-label="4"></a>pytest -m integration + PostgreSQL 16</span>
+<span id="cb13-5"><a href="" aria-label="5"></a>  → carga, migrations e consultas reais</span>
+<span id="cb13-6"><a href="" aria-label="6"></a></span>
+<span id="cb13-7"><a href="" aria-label="7"></a>Compose validation</span>
+<span id="cb13-8"><a href="" aria-label="8"></a>  → db + pipeline + Prometheus + Pushgateway + Grafana</span>
+<span id="cb13-9"><a href="" aria-label="9"></a>  → backup/restore + permissões + métricas + dashboards</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Além dos testes funcionais, a pipeline usa fixtures Parquet, CSV, JSON, XLS e banco temporário para reproduzir contratos sem depender sempre de uma fonte externa. O objetivo é testar tanto a transformação quanto a publicação operacional.</p>
+</section>
+<section id="testes-cruzados-entre-pipeline-e-java" class="slide level2">
+<h2>Testes cruzados entre pipeline e Java</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb14-1"><a href="" aria-label="1"></a>fixture / execução da pipeline</span>
+<span id="cb14-2"><a href="" aria-label="2"></a>          ↓</span>
+<span id="cb14-3"><a href="" aria-label="3"></a>PostgreSQL + migrations</span>
+<span id="cb14-4"><a href="" aria-label="4"></a>          ↓</span>
+<span id="cb14-5"><a href="" aria-label="5"></a>Java integration test</span>
+<span id="cb14-6"><a href="" aria-label="6"></a>          ↓</span>
+<span id="cb14-7"><a href="" aria-label="7"></a>contrato HTTP / resposta do dashboard</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>A pipeline testa se a publicação chega ao schema esperado.</li>
+<li>O Java testa se consegue localizar a publicação corrente por doença, ano e timestamps.</li>
+<li>Os testes verificam filtros nacionais, recortes territoriais e totais.</li>
+<li>A identificação temporal impede que uma consulta misture snapshots.</li>
+<li>A validação de Compose confirma que observabilidade e banco podem subir juntos.</li>
+</ul>
+<p>Essa divisão evita um falso positivo em que a pipeline passa isoladamente, mas a API não consegue consumir o dado publicado.</p>
+</section>
+<section id="estratégias-contra-testes-artificiais-dados" class="slide level2">
+<h2>Estratégias contra testes artificiais — dados</h2>
+<p>Um teste artificial verifica apenas que o código respondeu algo plausível. A NSS usa camadas de evidência para verificar que o resultado continua correto quando passa pelo banco, pelos contratos e pela operação real.</p>
+<h3 id="dados-representativos-e-invariantes">Dados representativos e invariantes</h3>
+<ul>
+<li>Fixtures Parquet, CSV, JSON, XLS e catálogos IBGE/CNES exercitam layouts e códigos reais.</li>
+<li>Os testes verificam totais, deduplicação, schemas, códigos territoriais e linhas rejeitadas.</li>
+<li>Testes negativos cobrem arquivo vazio, filtro inválido, município fora do escopo e publicação ausente.</li>
+<li>Snapshots e oráculos SQL comparam resultados completos, não apenas HTTP 200.</li>
+</ul>
+</section>
+<section id="estratégias-contra-testes-artificiais-contratos" class="slide level2">
+<h2>Estratégias contra testes artificiais — contratos</h2>
+<h3 id="contratos-entre-componentes">Contratos entre componentes</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb15-1"><a href="" aria-label="1"></a>fonte → transformação → serving → SQL → API → resposta</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Uma etapa não é considerada suficiente isoladamente. A pipeline valida o schema publicado; o Java valida que encontra a publicação correta; os contratos HTTP validam filtros, totais, cobertura e metadados.</p>
+<h3 id="banco-e-infraestrutura-reais">Banco e infraestrutura reais</h3>
+<ul>
+<li>Testes de integração usam PostgreSQL 16, migrations e carga transacional.</li>
+<li>O Java usa Testcontainers para testar repositórios, autenticação e fluxos persistidos.</li>
+<li>O CI sobe a stack Docker de observabilidade e valida Prometheus, Pushgateway e Grafana.</li>
+<li>O backup é restaurado em outro banco e consultado novamente.</li>
+</ul>
+<h3 id="controles-contra-testes-que-passam-por-acaso">Controles contra testes que “passam por acaso”</h3>
+<ul>
+<li>PIT altera regras do analytics e exige mutation score e test strength mínimos de 80%.</li>
+<li>ArchUnit impede que controllers contornem services e repositórios.</li>
+<li>Checkstyle, PMD, Spotless e JaCoCo são gates, não relatórios opcionais.</li>
+<li>O Compose valida permissões reais: o usuário Grafana consegue ler, mas não inserir.</li>
+<li>Métricas são publicadas no Pushgateway e verificadas por labels de pipeline, camada, doença e ano.</li>
+</ul>
+</section>
+<section id="estratégias-contra-testes-artificiais-reprodutibilidade" class="slide level2">
+<h2>Estratégias contra testes artificiais — reprodutibilidade</h2>
+<h3 id="reprodutibilidade-e-separação-de-ambientes">Reprodutibilidade e separação de ambientes</h3>
+<ul>
+<li>Unitários são rápidos e determinísticos; integrações são marcadas e executadas com serviços reais.</li>
+<li>Dependências são fixadas por lockfiles, versões de imagem e fixtures versionadas.</li>
+<li>O CI constrói a mesma imagem operacional que é validada no deployment.</li>
+<li>Nenhuma credencial de produção é usada para fabricar um resultado de teste.</li>
+</ul>
+<p>O objetivo não é eliminar mocks: é impedir que um mock seja a única evidência. Mocks permanecem úteis para isolar uma regra; banco, migrations, contratos e containers verificam se a regra funciona no sistema completo.</p>
+</section>
+<section id="mutação-mutmut-na-pipeline-e-pit-no-java" class="slide level2">
+<h2>Mutação: <code>mutmut</code> na pipeline e PIT no Java</h2>
+<p>Cobertura de linhas responde “o código foi executado?”. Mutação responde “os testes perceberiam se a regra fosse alterada?”. As duas métricas são complementares.</p>
+<h3 id="pipeline-python-mutmut">Pipeline Python — <code>mutmut</code></h3>
+<ul>
+<li>Executa mutações nos módulos críticos de <code>app/pipeline</code>.</li>
+<li>O escopo inclui Bronze/Silver/Gold, carga, território, CNES, atualização, preflight, métricas e referências IBGE.</li>
+<li>As fixtures oficiais são copiadas para o ambiente mutado e qualquer mudança nelas força os testes dependentes a rodar novamente.</li>
+<li>A primeira rodada exclui testes de integração para não reinicializar PostgreSQL a cada mutante; essa é uma delimitação de custo, não uma alegação de que integração não importa.</li>
+<li>O comando reproduzível é <code>mutmut run</code>, seguido de <code>mutmut results</code>.</li>
+<li>A meta documentada é matar 95% dos mutantes. Essa métrica é separada da cobertura de linhas.</li>
+</ul>
+<h3 id="java-pit">Java — PIT</h3>
+<ul>
+<li>Executa mutação com <code>pitest-maven</code> e suporte JUnit 5.</li>
+<li>O escopo atual concentra-se em <code>com.example.nss.analytics.application</code>, com os testes correspondentes de analytics.</li>
+<li>O CI roda:</li>
+</ul>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode numberSource bash number-lines code-with-copy"><code class="sourceCode bash"><span id="cb16-1"><a href="" aria-label="1"></a><span class="ex">./mvnw</span> <span class="at">-B</span> test-compile org.pitest:pitest-maven:mutationCoverage</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>O gate configurado exige mutation score mínimo de 80% e test strength mínimo de 80%.</li>
+<li>O ciclo documentado alcançou 180 de 191 mutações mortas: 94% de mutation score e 96% de test strength.</li>
+<li>Mutações sobreviventes são classificadas. Casos equivalentes, inalcançáveis ou puramente criptográficos não recebem testes artificiais só para elevar a porcentagem.</li>
+</ul>
+<h3 id="diferença-prática">Diferença prática</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb17"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb17-1"><a href="" aria-label="1"></a>mutmut → robustez das transformações e cargas Python</span>
+<span id="cb17-2"><a href="" aria-label="2"></a>PIT     → robustez das regras Java de aplicação/analytics</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Ambos alteram o código de propósito e verificam se a suíte falha quando uma decisão relevante é invertida. Isso revela testes que executam uma linha, mas não protegem seu comportamento.</p>
+</section>
+<section id="front-end-mapa-ranking-e-estado-de-navegação" class="slide level2">
+<h2>6. Front-end: mapa, ranking e estado de navegação</h2>
+<p>O front-end usa React, TanStack Query, React Simple Maps e GeoJSON estático carregado sob demanda.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb18"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb18-1"><a href="" aria-label="1"></a>filtros → request epidemiológico → cache por escopo</span>
+<span id="cb18-2"><a href="" aria-label="2"></a>                                ↓</span>
+<span id="cb18-3"><a href="" aria-label="3"></a>                       mapa + ranking + contexto</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>A cor dos mapas usa escala dinâmica baseada nos valores visíveis.</li>
+<li>O mapa de estados usa códigos IBGE numéricos, iguais aos retornados pela API.</li>
+<li>Tela cheia mantém a navegação territorial; “Voltar” retorna apenas um nível.</li>
+<li>A sessão é restaurada por refresh token após recarregar a página.</li>
+<li>A apresentação de dados exibe a data de extração do SINAN quando fornecida.</li>
+</ul>
+</section>
+<section id="validação-territorial-do-estado-do-rio-de-janeiro" class="slide level2">
+<h2>Validação territorial do Estado do Rio de Janeiro</h2>
+<h3 id="resultado-cartográfico">Resultado cartográfico</h3>
+<ul>
+<li>92 municípios validados.</li>
+<li>300 polígonos oficiais de distritos.</li>
+<li>Nenhum arquivo distrital vazio.</li>
+<li>Bairros carregados somente nos municípios com geometria oficial disponível.</li>
+<li>Municípios com uma única divisão distrital podem abrir diretamente no ranking de bairros.</li>
+<li>Municípios com múltiplos distritos abrem primeiro o ranking distrital e expandem o bairro quando possível.</li>
+</ul>
+<h3 id="consistência-de-retorno">Consistência de retorno</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb19"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb19-1"><a href="" aria-label="1"></a>bairro → distrito → município → estado RJ → Sudeste → Brasil</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Ao voltar de um município, o estado de origem é preservado; não se retorna indevidamente à lista nacional de municípios.</p>
+</section>
+<section id="validação-automatizada" class="slide level2">
+<h2>Validação automatizada</h2>
+<p>O front-end possui testes de build e E2E para:</p>
+<ul>
+<li>regiões, estados e municípios nacionais;</li>
+<li>92 municípios do RJ;</li>
+<li>distritos e bairros conforme disponibilidade;</li>
+<li>ranking e mapa usando o mesmo recorte;</li>
+<li>filtros de mês, ano, doença, sexo e faixa etária;</li>
+<li>navegação em tela cheia;</li>
+<li>sessão, login, logout e rotas protegidas;</li>
+<li>fluxos de administrador e primeiro acesso.</li>
+</ul>
+<p>O CI do GitHub Actions executa lint, TypeScript, build, instalação do Chromium e a suíte de testes Playwright.</p>
+</section>
+<section id="operação-e-integração-dos-repositórios" class="slide level2">
+<h2>7. Operação e integração dos repositórios</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb20"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb20-1"><a href="" aria-label="1"></a>NSS-pipeline       main  → ingestão, serving, métricas e migrações</span>
+<span id="cb20-2"><a href="" aria-label="2"></a>NSS Java           main  → API, autenticação e consultas PostgreSQL</span>
+<span id="cb20-3"><a href="" aria-label="3"></a>NSS-front-end      main  → interface, mapas e E2E</span>
+<span id="cb20-4"><a href="" aria-label="4"></a>nss-deployment      main  → Docker Compose, Caddy, Prometheus e Grafana</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<ul>
+<li>As branches de trabalho foram integradas à <code>main</code>.</li>
+<li>Os quatro worktrees foram verificados limpos e sincronizados com o GitHub.</li>
+<li>O deployment local é composto por PostgreSQL, migrações, Java, frontend, Caddy, Prometheus, Pushgateway e Grafana.</li>
+</ul>
+</section>
+<section id="o-que-a-nss-v1-entrega-agora" class="slide level2">
+<h2>O que a NSS V1 entrega agora</h2>
+<div class="callout callout-tip callout-titled callout-style-default">
+<div class="callout-body">
+<div class="callout-title">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<p><strong>Tip</strong></p>
+</div>
+<div class="callout-content">
+<p>Uma consulta epidemiológica nacional, rastreável e navegável territorialmente, com a mesma identidade de dados entre pipeline, banco, API, mapa e ranking.</p>
+</div>
+</div>
+</div>
+<ul>
+<li>Catálogo de 49 grupos SINAN/PySUS, com nomes completos e códigos técnicos; seis recortes foram usados nos snapshots visuais validados.</li>
+<li>Cobertura epidemiológica nacional por regiões, estados e municípios, conforme as publicações disponíveis.</li>
+<li>Detalhamento intramunicipal condicionado à geometria oficial e ao vínculo territorial disponível.</li>
+<li>Metadados de extração e publicação para rastreabilidade dos snapshots.</li>
+<li>Autenticação, sessões persistentes e administração de usuários.</li>
+<li>Observabilidade da pipeline e operação reproduzível em Docker.</li>
+</ul>
+</section>
+<section id="limites-conhecidos-e-evolução-futura" class="slide level2">
+<h2>Limites conhecidos e evolução futura</h2>
+<ul>
+<li>A presença de dados epidemiológicos não cria automaticamente um polígono oficial de bairro.</li>
+<li>O vínculo territorial depende da unidade notificadora e da qualidade das fontes IBGE/CNES.</li>
+<li>Novas doenças exigem contrato de código, dicionário e validação do schema de origem.</li>
+<li>A atualização contínua exigirá política de publicação, retenção e auditoria de snapshots.</li>
+</ul>
+</section>
+<section id="encerramento" class="slide level2">
+<h2>Encerramento</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb21"><pre class="sourceCode numberSource text number-lines code-with-copy"><code class="sourceCode"><span id="cb21-1"><a href="" aria-label="1"></a>Fonte preservada</span>
+<span id="cb21-2"><a href="" aria-label="2"></a>      + transformação auditável</span>
+<span id="cb21-3"><a href="" aria-label="3"></a>      + publicação identificável</span>
+<span id="cb21-4"><a href="" aria-label="4"></a>      + API contratual</span>
+<span id="cb21-5"><a href="" aria-label="5"></a>      + interface validada</span>
+<span id="cb21-6"><a href="" aria-label="6"></a>      = NSS pronta para evolução nacional</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="small">
+<p>Repositórios: <code>nss-pipeline</code>, <code>Site-Sala-de-Situa-o-de-Saude-Java</code>, <code>nss-front-end</code> e <code>nss-deployment</code>.</p>
+</div>
+
+</section>
+    </div>
+  <div class="quarto-auto-generated-content" style="display: none;">
+<div class="footer footer-default">
+<p>NSS — Cobertura Nacional | Núcleo de Situação de Saúde</p>
+</div>
+</div></div>
+
+  <script>window.backupDefine = window.define; window.define = undefined;</script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/dist/reveal.js"></script>
+  <!-- reveal.js plugins -->
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/quarto-line-highlight/line-highlight.js"></script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/pdf-export/pdfexport.js"></script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/reveal-menu/menu.js"></script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/reveal-menu/quarto-menu.js"></script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/quarto-support/support.js"></script>
+  
+
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/notes/notes.js"></script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/search/search.js"></script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/zoom/zoom.js"></script>
+  <script src="apresentacao-cobertura-nacional_files/libs/revealjs/plugin/math/math.js"></script>
+  <script>window.define = window.backupDefine; window.backupDefine = undefined;</script>
+
+  <script>
+
+      // Full list of configuration options available at:
+      // https://revealjs.com/config/
+      Reveal.initialize({
+'controlsAuto': false,
+'previewLinksAuto': false,
+'pdfSeparateFragments': false,
+'autoAnimateEasing': "ease",
+'autoAnimateDuration': 1,
+'autoAnimateUnmatched': true,
+'jumpToSlide': true,
+'menu': {"side":"left","useTextContentForMissingTitles":true,"markers":false,"loadIcons":false,"custom":[{"title":"Tools","icon":"<i class=\"fas fa-gear\"></i>","content":"<ul class=\"slide-menu-items\">\n<li class=\"slide-tool-item active\" data-item=\"0\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.fullscreen(event)\"><kbd>f</kbd> Fullscreen</a></li>\n<li class=\"slide-tool-item\" data-item=\"1\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.speakerMode(event)\"><kbd>s</kbd> Speaker View</a></li>\n<li class=\"slide-tool-item\" data-item=\"2\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.overview(event)\"><kbd>o</kbd> Slide Overview</a></li>\n<li class=\"slide-tool-item\" data-item=\"3\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.togglePdfExport(event)\"><kbd>e</kbd> PDF Export Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"4\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.toggleScrollView(event)\"><kbd>r</kbd> Scroll View Mode</a></li>\n<li class=\"slide-tool-item\" data-item=\"5\"><a href=\"#\" onclick=\"RevealMenuToolHandlers.keyboardHelp(event)\"><kbd>?</kbd> Keyboard Help</a></li>\n</ul>"}],"openButton":true,"numbers":true},
+'smaller': false,
+ 
+        // Display controls in the bottom right corner
+        controls: true,
+
+        // Help the user learn the controls by providing hints, for example by
+        // bouncing the down arrow when they first encounter a vertical slide
+        controlsTutorial: false,
+
+        // Determines where controls appear, "edges" or "bottom-right"
+        controlsLayout: 'edges',
+
+        // Visibility rule for backwards navigation arrows; "faded", "hidden"
+        // or "visible"
+        controlsBackArrows: 'faded',
+
+        // Display a presentation progress bar
+        progress: true,
+
+        // Display the page number of the current slide
+        slideNumber: 'c/t',
+
+        // 'all', 'print', or 'speaker'
+        showSlideNumber: 'all',
+
+        // Add the current slide number to the URL hash so that reloading the
+        // page/copying the URL will return you to the same slide
+        hash: true,
+
+        // Start with 1 for the hash rather than 0
+        hashOneBasedIndex: false,
+
+        // Flags if we should monitor the hash and change slides accordingly
+        respondToHashChanges: true,
+
+        // Push each slide change to the browser history
+        history: true,
+
+        // Enable keyboard shortcuts for navigation
+        keyboard: true,
+
+        // Enable the slide overview mode
+        overview: true,
+
+        // Disables the default reveal.js slide layout (scaling and centering)
+        // so that you can use custom CSS layout
+        disableLayout: false,
+
+        // Vertical centering of slides
+        center: false,
+
+        // Enables touch navigation on devices with touch input
+        touch: true,
+
+        // Loop the presentation
+        loop: false,
+
+        // Change the presentation direction to be RTL
+        rtl: false,
+
+        // see https://revealjs.com/vertical-slides/#navigation-mode
+        navigationMode: 'linear',
+
+        // Randomizes the order of slides each time the presentation loads
+        shuffle: false,
+
+        // Turns fragments on and off globally
+        fragments: true,
+
+        // Flags whether to include the current fragment in the URL,
+        // so that reloading brings you to the same fragment position
+        fragmentInURL: false,
+
+        // Flags if the presentation is running in an embedded mode,
+        // i.e. contained within a limited portion of the screen
+        embedded: false,
+
+        // Flags if we should show a help overlay when the questionmark
+        // key is pressed
+        help: true,
+
+        // Flags if it should be possible to pause the presentation (blackout)
+        pause: true,
+
+        // Flags if speaker notes should be visible to all viewers
+        showNotes: false,
+
+        // Global override for autoplaying embedded media (null/true/false)
+        autoPlayMedia: null,
+
+        // Global override for preloading lazy-loaded iframes (null/true/false)
+        preloadIframes: null,
+
+        // Number of milliseconds between automatically proceeding to the
+        // next slide, disabled when set to 0, this value can be overwritten
+        // by using a data-autoslide attribute on your slides
+        autoSlide: 0,
+
+        // Stop auto-sliding after user input
+        autoSlideStoppable: true,
+
+        // Use this method for navigation when auto-sliding
+        autoSlideMethod: null,
+
+        // Specify the average time in seconds that you think you will spend
+        // presenting each slide. This is used to show a pacing timer in the
+        // speaker view
+        defaultTiming: null,
+
+        // Enable slide navigation via mouse wheel
+        mouseWheel: false,
+
+        // The display mode that will be used to show slides
+        display: 'block',
+
+        // Hide cursor if inactive
+        hideInactiveCursor: true,
+
+        // Time before the cursor is hidden (in ms)
+        hideCursorTime: 5000,
+
+        // Opens links in an iframe preview overlay
+        previewLinks: false,
+
+        // Transition style (none/fade/slide/convex/concave/zoom)
+        transition: 'fade',
+
+        // Transition speed (default/fast/slow)
+        transitionSpeed: 'default',
+
+        // Transition style for full page slide backgrounds
+        // (none/fade/slide/convex/concave/zoom)
+        backgroundTransition: 'none',
+
+        // Number of slides away from the current that are visible
+        viewDistance: 3,
+
+        // Number of slides away from the current that are visible on mobile
+        // devices. It is advisable to set this to a lower number than
+        // viewDistance in order to save resources.
+        mobileViewDistance: 2,
+
+        // The "normal" size of the presentation, aspect ratio will be preserved
+        // when the presentation is scaled to fit different resolutions. Can be
+        // specified using percentage units.
+        width: 1600,
+
+        height: 900,
+
+        // Factor of the display size that should remain empty around the content
+        margin: 6.0e-2,
+
+        math: {
+          mathjax: 'https://cdn.jsdelivr.net/npm/mathjax@2.7.9/MathJax.js',
+          config: 'TeX-AMS_HTML-full',
+          tex2jax: {
+            inlineMath: [['\\(','\\)']],
+            displayMath: [['\\[','\\]']],
+            balanceBraces: true,
+            processEscapes: false,
+            processRefs: true,
+            processEnvironments: true,
+            preview: 'TeX',
+            skipTags: ['script','noscript','style','textarea','pre','code'],
+            ignoreClass: 'tex2jax_ignore',
+            processClass: 'tex2jax_process'
+          },
+        },
+
+        // reveal.js plugins
+        plugins: [QuartoLineHighlight, PdfExport, RevealMenu, QuartoSupport,
+
+          RevealMath,
+          RevealNotes,
+          RevealSearch,
+          RevealZoom
+        ]
+      });
+    </script>
+    <script id="quarto-html-after-body" type="application/javascript">
+      window.document.addEventListener("DOMContentLoaded", function (event) {
+        const tabsets =  window.document.querySelectorAll(".panel-tabset-tabby")
+        tabsets.forEach(function(tabset) {
+          const tabby = new Tabby('#' + tabset.id);
+        });
+        const isCodeAnnotation = (el) => {
+          for (const clz of el.classList) {
+            if (clz.startsWith('code-annotation-')) {                     
+              return true;
+            }
+          }
+          return false;
+        }
+        const onCopySuccess = function(e) {
+          // button target
+          const button = e.trigger;
+          // don't keep focus
+          button.blur();
+          // flash "checked"
+          button.classList.add('code-copy-button-checked');
+          var currentTitle = button.getAttribute("title");
+          button.setAttribute("title", "Copied!");
+          let tooltip;
+          if (window.bootstrap) {
+            button.setAttribute("data-bs-toggle", "tooltip");
+            button.setAttribute("data-bs-placement", "left");
+            button.setAttribute("data-bs-title", "Copied!");
+            tooltip = new bootstrap.Tooltip(button, 
+              { trigger: "manual", 
+                customClass: "code-copy-button-tooltip",
+                offset: [0, -8]});
+            tooltip.show();    
+          }
+          setTimeout(function() {
+            if (tooltip) {
+              tooltip.hide();
+              button.removeAttribute("data-bs-title");
+              button.removeAttribute("data-bs-toggle");
+              button.removeAttribute("data-bs-placement");
+            }
+            button.setAttribute("title", currentTitle);
+            button.classList.remove('code-copy-button-checked');
+          }, 1000);
+          // clear code selection
+          e.clearSelection();
+        }
+        const getTextToCopy = function(trigger) {
+          const outerScaffold = trigger.parentElement.cloneNode(true);
+          const codeEl = outerScaffold.querySelector('code');
+          for (const childEl of codeEl.children) {
+            if (isCodeAnnotation(childEl)) {
+              childEl.remove();
+            }
+          }
+          return codeEl.innerText;
+        }
+        const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+          text: getTextToCopy
+        });
+        clipboard.on('success', onCopySuccess);
+        if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+          const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+            text: getTextToCopy,
+            container: window.document.getElementById('quarto-embedded-source-code-modal')
+          });
+          clipboardModal.on('success', onCopySuccess);
+        }
+          var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+          var mailtoRegex = new RegExp(/^mailto:/);
+            var filterRegex = new RegExp('/' + window.location.host + '/');
+          var isInternal = (href) => {
+              return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+          }
+          // Inspect non-navigation links and adorn them if external
+         var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+          for (var i=0; i<links.length; i++) {
+            const link = links[i];
+            if (!isInternal(link.href)) {
+              // undo the damage that might have been done by quarto-nav.js in the case of
+              // links that we want to consider external
+              if (link.dataset.originalHref !== undefined) {
+                link.href = link.dataset.originalHref;
+              }
+            }
+          }
+        function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+          const config = {
+            allowHTML: true,
+            maxWidth: 500,
+            delay: 100,
+            arrow: false,
+            appendTo: function(el) {
+                return el.closest('section.slide') || el.parentElement;
+            },
+            interactive: true,
+            interactiveBorder: 10,
+            theme: 'light-border',
+            placement: 'bottom-start',
+          };
+          if (contentFn) {
+            config.content = contentFn;
+          }
+          if (onTriggerFn) {
+            config.onTrigger = onTriggerFn;
+          }
+          if (onUntriggerFn) {
+            config.onUntrigger = onUntriggerFn;
+          }
+            config['offset'] = [0,0];
+            config['maxWidth'] = 700;
+          window.tippy(el, config); 
+        }
+        const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+        for (var i=0; i<noterefs.length; i++) {
+          const ref = noterefs[i];
+          tippyHover(ref, function() {
+            // use id or data attribute instead here
+            let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+            try { href = new URL(href).hash; } catch {}
+            const id = href.replace(/^#\/?/, "");
+            const note = window.document.getElementById(id);
+            if (note) {
+              return note.innerHTML;
+            } else {
+              return "";
+            }
+          });
+        }
+        const findCites = (el) => {
+          const parentEl = el.parentElement;
+          if (parentEl) {
+            const cites = parentEl.dataset.cites;
+            if (cites) {
+              return {
+                el,
+                cites: cites.split(' ')
+              };
+            } else {
+              return findCites(el.parentElement)
+            }
+          } else {
+            return undefined;
+          }
+        };
+        var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+        for (var i=0; i<bibliorefs.length; i++) {
+          const ref = bibliorefs[i];
+          const citeInfo = findCites(ref);
+          if (citeInfo) {
+            tippyHover(citeInfo.el, function() {
+              var popup = window.document.createElement('div');
+              citeInfo.cites.forEach(function(cite) {
+                var citeDiv = window.document.createElement('div');
+                citeDiv.classList.add('hanging-indent');
+                citeDiv.classList.add('csl-entry');
+                var biblioDiv = window.document.getElementById('ref-' + cite);
+                if (biblioDiv) {
+                  citeDiv.innerHTML = biblioDiv.innerHTML;
+                }
+                popup.appendChild(citeDiv);
+              });
+              return popup.innerHTML;
+            });
+          }
+        }
+      });
+      </script>
+    
+
+</body></html>
