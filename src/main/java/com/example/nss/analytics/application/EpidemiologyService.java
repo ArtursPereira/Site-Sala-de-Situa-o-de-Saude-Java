@@ -8,6 +8,7 @@ import com.example.nss.analytics.domain.Geography;
 import com.example.nss.analytics.infrastructure.repository.EpidemiologyRepository;
 import com.example.nss.analytics.infrastructure.repository.EpidemiologyTotals;
 import com.example.nss.analytics.infrastructure.repository.MetadataRow;
+import com.example.nss.analytics.infrastructure.repository.PublicationMetadataRow;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -21,18 +22,12 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class EpidemiologyService {
-  private static final String CAMPOS = "3301009";
   private final EpidemiologyRepository repository;
   private final TerritoryCatalog catalog;
 
   public AnalyticsResponse query(Geography geography, EpidemiologyFilter filter) {
-    if (geography != Geography.MUNICIPALITY
-        && filter.municipalityCode() != null
-        && !CAMPOS.equals(filter.municipalityCode())) {
-      return response(geography, filter, null, CoverageStatus.UNAVAILABLE, 0L, 0L, List.of());
-    }
-    if (geography == Geography.NEIGHBORHOOD && !"CG_DIST_SEDE".equals(filter.districtCode())) {
-      return response(geography, filter, null, CoverageStatus.UNAVAILABLE, 0L, 0L, List.of());
+    if (geography == Geography.NEIGHBORHOOD && filter.districtCode() == null) {
+      return response(geography, filter, null, CoverageStatus.UNAVAILABLE, 0L, 0L, List.of(), null);
     }
     List<TerritoryCatalog.Entry> territories =
         catalog.forGeography(filter.municipalityCode(), filter.districtCode(), geography.name());
@@ -66,11 +61,11 @@ public class EpidemiologyService {
     items.sort(Comparator.comparing(AnalyticsResponse.TerritoryItem::code));
     CoverageStatus status =
         total == 0 || mapped == total ? CoverageStatus.AVAILABLE : CoverageStatus.PARTIAL;
-    return response(geography, filter, total, status, mapped, total - mapped, items);
+    return response(geography, filter, total, status, mapped, total - mapped, items, repository.publicationMetadata(filter));
   }
 
   public AnalyticsResponse unavailable(Geography geography, EpidemiologyFilter filter) {
-    return response(geography, filter, null, CoverageStatus.UNAVAILABLE, 0L, 0L, List.of());
+    return response(geography, filter, null, CoverageStatus.UNAVAILABLE, 0L, 0L, List.of(), null);
   }
 
   public List<String> diseases() {
@@ -106,7 +101,8 @@ public class EpidemiologyService {
       CoverageStatus status,
       long mapped,
       long unmapped,
-      List<AnalyticsResponse.TerritoryItem> items) {
+      List<AnalyticsResponse.TerritoryItem> items,
+      PublicationMetadataRow publication) {
     return new AnalyticsResponse(
         "notifications",
         geography,
@@ -120,6 +116,8 @@ public class EpidemiologyService {
             f.districtCode()),
         total,
         new AnalyticsResponse.Coverage(status, mapped, unmapped),
-        items);
+        items,
+        publication == null ? null : publication.sourceExtractedAt(),
+        publication == null ? null : publication.addedAt());
   }
 }

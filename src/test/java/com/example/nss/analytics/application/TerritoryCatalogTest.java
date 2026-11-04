@@ -24,7 +24,7 @@ class TerritoryCatalogTest {
   void listsAllMunicipalitiesAndSupportsLookup() {
     var municipalities = catalog.forGeography(null, null, "MUNICIPALITY");
 
-    assertEquals(4, municipalities.size());
+    assertEquals(5571, municipalities.size());
     assertTrue(catalog.find("CG_DIST_SEDE").isPresent());
     assertFalse(catalog.find("does-not-exist").isPresent());
   }
@@ -39,8 +39,21 @@ class TerritoryCatalogTest {
   }
 
   @Test
-  void excludesDistrictsAndNeighborhoodsFromOtherParents() {
-    assertTrue(catalog.forGeography("3302403", null, "DISTRICT").isEmpty());
+  void coversAllRioDeJaneiroMunicipalitiesAndTheirDistricts() {
+    var rjMunicipalities =
+        catalog.forGeography(null, null, "MUNICIPALITY").stream()
+            .filter(entry -> entry.municipalityCode().startsWith("33"))
+            .toList();
+
+    assertEquals(92, rjMunicipalities.size());
+    for (var municipality : rjMunicipalities) {
+      assertFalse(catalog.forGeography(municipality.territoryId(), null, "DISTRICT").isEmpty());
+    }
+  }
+
+  @Test
+  void filtersIntramunicipalEntriesByTheirMunicipalityAndParent() {
+    assertFalse(catalog.forGeography("3302403", null, "DISTRICT").isEmpty());
     assertTrue(catalog.forGeography("3301009", "unknown", "NEIGHBORHOOD").isEmpty());
   }
 }

@@ -32,9 +32,9 @@ class EpidemiologyRepositoryPostgresIT {
     jdbc.execute(
         "CREATE TABLE analytics.fato_casos (disease_codigo VARCHAR, ano INT, mes INT, cd_mun VARCHAR, "
             + "notification_district_id VARCHAR, notification_neighborhood_id VARCHAR, "
-            + "notification_territory_status VARCHAR, cases_total INT, cd_sexo VARCHAR, age_band VARCHAR)");
+            + "notification_territory_status VARCHAR, cases_total INT, cd_sexo VARCHAR, age_band VARCHAR, batch_id VARCHAR)");
     jdbc.update(
-        "INSERT INTO analytics.fato_casos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO analytics.fato_casos VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         "DENG",
         2024,
         3,
@@ -44,7 +44,13 @@ class EpidemiologyRepositoryPostgresIT {
         "NOTIFICATION_NEIGHBORHOOD",
         4,
         "F",
-        "20_39");
+        "20_39",
+        "20261104T000000Z");
+    jdbc.execute(
+        "CREATE TABLE analytics.pipeline_current_publication (disease_codigo VARCHAR, ano INT, cd_mun VARCHAR, batch_id VARCHAR, source_extracted_timestamp TIMESTAMPTZ, added_at TIMESTAMPTZ)");
+    jdbc.update(
+        "INSERT INTO analytics.pipeline_current_publication VALUES (?, ?, ?, ?, now(), now())",
+        "DENG", 2024, "3301009", "20261104T000000Z");
     repository = new EpidemiologyRepository(jdbc, "ano", "mes");
   }
 

@@ -29,7 +29,11 @@ class EpidemiologyRepositoryTest {
                 "jdbc:h2:mem:" + UUID.randomUUID() + ";DB_CLOSE_DELAY=-1", "sa", ""));
     jdbc.execute("CREATE SCHEMA analytics");
     jdbc.execute(
-        "CREATE TABLE analytics.fato_casos (cd_mun VARCHAR, notification_district_id VARCHAR, notification_neighborhood_id VARCHAR, notification_territory_status VARCHAR, cases_total INT, cd_sexo VARCHAR)");
+        "CREATE TABLE analytics.fato_casos (cd_mun VARCHAR, notification_district_id VARCHAR, notification_neighborhood_id VARCHAR, notification_territory_status VARCHAR, cases_total INT, cd_sexo VARCHAR, batch_id VARCHAR, disease_codigo VARCHAR, ano INT, mes INT)");
+    jdbc.execute(
+        "CREATE TABLE analytics.pipeline_current_publication (disease_codigo VARCHAR, ano INT, cd_mun VARCHAR, batch_id VARCHAR, source_extracted_timestamp TIMESTAMP, added_at TIMESTAMP)");
+    jdbc.update(
+        "INSERT INTO analytics.pipeline_current_publication VALUES ('DENG', 2024, '3301009', 'test-batch', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
     var catalog = new TerritoryCatalog();
     String district = "CG_DIST_SEDE";
     String neighborhood =
@@ -43,7 +47,7 @@ class EpidemiologyRepositoryTest {
       {null, null, "UNMAPPED_NOTIFICATION_UNIT", 17}
     };
     for (Object[] row : rows)
-      jdbc.update("INSERT INTO analytics.fato_casos VALUES ('3301009', ?, ?, ?, ?, 'F')", row);
+      jdbc.update("INSERT INTO analytics.fato_casos VALUES ('3301009', ?, ?, ?, ?, 'F', 'test-batch', 'DENG', 2024, 3)", row);
     var repository = new EpidemiologyRepository(jdbc, "ano", "mes");
     var filter = new EpidemiologyFilter(null, null, null, null, null, "3301009", null);
     var districtIds =

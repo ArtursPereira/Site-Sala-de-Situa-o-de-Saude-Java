@@ -58,15 +58,23 @@ class EpidemiologyServiceTest {
   }
 
   @Test
-  void nonCamposIntramunicipalDrilldownIsUnavailable() {
+  void nationalIntramunicipalDrilldownUsesTheNationalCatalog() {
+    when(catalog.forGeography("3302205", null, "DISTRICT"))
+        .thenReturn(List.of(new TerritoryCatalog.Entry(
+            "IBGE_DIST_330220505", "Itaperuna", "DISTRICT", "3302205", null, "AVAILABLE")));
+    when(repository.totals(any(), eq(Geography.DISTRICT), any()))
+        .thenReturn(new EpidemiologyTotals(0L, 0L));
+    when(repository.aggregate(any(), eq(Geography.DISTRICT), any())).thenReturn(List.of());
+
     AnalyticsResponse response =
         service.query(
             Geography.DISTRICT,
             new EpidemiologyFilter("DENG", null, null, null, null, "3302205", null));
 
-    assertNull(response.totalNotifications());
-    assertEquals("UNAVAILABLE", response.coverage().status().name());
-    verifyNoInteractions(repository);
+    assertEquals(0L, response.totalNotifications());
+    assertEquals("AVAILABLE", response.coverage().status().name());
+    assertEquals(1, response.items().size());
+    verify(repository).totals(any(), eq(Geography.DISTRICT), any());
   }
 
   @Test

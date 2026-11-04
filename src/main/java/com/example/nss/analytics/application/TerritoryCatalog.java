@@ -16,14 +16,10 @@ public class TerritoryCatalog {
   private static final String NEIGHBORHOOD_OR_LOCALITY = "NEIGHBORHOOD_OR_LOCALITY";
   private static final int MINIMUM_TERRITORY_COLUMNS = 6;
   private final Map<String, Entry> entries;
-  private final Map<String, String> municipalities =
-      Map.of(
-          "3301009", "Campos dos Goytacazes",
-          "3302403", "Macaé",
-          "3302205", "Itaperuna",
-          "3305000", "São João da Barra");
+  private final Map<String, String> municipalities;
 
   public TerritoryCatalog() {
+    this.municipalities = loadMunicipalities();
     this.entries = load();
   }
 
@@ -58,24 +54,52 @@ public class TerritoryCatalog {
 
   private Map<String, Entry> load() {
     Map<String, Entry> result = new LinkedHashMap<>();
+    readTsv("territories/campos.tsv", result);
+    readTsv("territories/national-intramunicipal.tsv", result);
+    return Map.copyOf(result);
+  }
+
+  private Map<String, String> loadMunicipalities() {
+    Map<String, String> result = new LinkedHashMap<>();
     try (BufferedReader reader =
         new BufferedReader(
             new InputStreamReader(
-                new ClassPathResource("territories/campos.tsv").getInputStream(),
+                new ClassPathResource("territories/national-municipalities.tsv").getInputStream(),
                 StandardCharsets.UTF_8))) {
       reader.readLine();
-      String line = reader.readLine();
-      while (line != null) {
-        String[] p = line.split("\\t", -1);
-        if (p.length >= MINIMUM_TERRITORY_COLUMNS) {
-          result.put(p[0], new Entry(p[0], p[1], p[2], p[3], p[4].isBlank() ? null : p[4], p[5]));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        String[] columns = line.split("\\t", -1);
+        if (columns.length >= 2 && columns[0].matches("\\d{7}") && !columns[1].isBlank()) {
+          result.put(columns[0], columns[1]);
         }
-        line = reader.readLine();
       }
     } catch (IOException e) {
-      throw new IllegalStateException("Catálogo territorial não disponível", e);
+      throw new IllegalStateException("Catálogo nacional de municípios não disponível", e);
+    }
+    if (result.size() < 5570) {
+      throw new IllegalStateException("Catálogo nacional de municípios incompleto: " + result.size());
     }
     return Map.copyOf(result);
+  }
+
+  private void readTsv(String resource, Map<String, Entry> result) {
+    try (BufferedReader reader =
+        new BufferedReader(
+            new InputStreamReader(
+                new ClassPathResource(resource).getInputStream(), StandardCharsets.UTF_8))) {
+      reader.readLine();
+      String line;
+      while ((line = reader.readLine()) != null) {
+        String[] p = line.split("\\t", -1);
+        if (p.length >= MINIMUM_TERRITORY_COLUMNS && !p[0].isBlank()) {
+          result.putIfAbsent(
+              p[0], new Entry(p[0], p[1], p[2], p[3], p[4].isBlank() ? null : p[4], p[5]));
+        }
+      }
+    } catch (IOException e) {
+      throw new IllegalStateException("Catálogo territorial não disponível: " + resource, e);
+    }
   }
 
   public record Entry(

@@ -7,6 +7,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Serviço de envio de e-mails transacionais.
@@ -16,6 +17,7 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class MailService {
 
   private final JavaMailSender mailSender;
@@ -35,7 +37,16 @@ public class MailService {
   }
 
   public void sendTextAfterCommit(String recipient, String subject, String body) {
-    Runnable send = () -> sendText(recipient, subject, body);
+    Runnable send =
+        () -> {
+          try {
+            sendText(recipient, subject, body);
+          } catch (RuntimeException exception) {
+            // A mail outage must not roll back a committed user/invitation.
+            // The pending token remains available for an operational retry.
+            log.warn("Falha ao enviar notificação de e-mail após commit", exception);
+          }
+        };
     if (!TransactionSynchronizationManager.isSynchronizationActive()) {
       send.run();
       return;

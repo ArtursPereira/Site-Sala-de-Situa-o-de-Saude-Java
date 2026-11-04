@@ -3,6 +3,7 @@ package com.example.nss.analytics.api.response;
 import com.example.nss.analytics.domain.CoverageStatus;
 import com.example.nss.analytics.domain.Geography;
 import java.util.List;
+import java.time.Instant;
 
 public record AnalyticsResponse(
     String metric,
@@ -10,7 +11,9 @@ public record AnalyticsResponse(
     FilterResponse filters,
     Long totalNotifications,
     Coverage coverage,
-    List<TerritoryItem> items) {
+    List<TerritoryItem> items,
+    Instant sourceExtractedAt,
+    Instant addedAt) {
   public record FilterResponse(
       String disease,
       Integer year,

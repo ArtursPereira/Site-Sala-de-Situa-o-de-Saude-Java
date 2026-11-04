@@ -64,7 +64,11 @@ public class SecurityConfig {
                         "/api/v1/auth/login",
                         "/api/v1/auth/first-access",
                         "/api/v1/auth/password-reset/request",
-                        "/api/v1/auth/password-reset/complete"))
+                        "/api/v1/auth/password-reset/complete",
+                        // Admin mutations authenticate with the short-lived
+                        // bearer token, not a browser cookie. They are not
+                        // CSRF-sensitive and must remain usable by the SPA.
+                        "/api/v1/admin/**"))
         .cors(cors -> cors.configurationSource(corsConfigurationSource()))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
