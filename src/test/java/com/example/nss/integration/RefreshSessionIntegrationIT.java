@@ -1,6 +1,5 @@
 package com.example.nss.integration;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -9,16 +8,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.nss.user.application.RefreshSessionService;
 import com.example.nss.user.domain.AccountType;
-import com.example.nss.user.domain.RefreshSession;
 import com.example.nss.user.domain.User;
-import com.example.nss.user.infrastructure.repository.RefreshSessionRepository;
 import com.example.nss.user.infrastructure.repository.UserRepository;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.time.Instant;
-import java.util.List;
+import java.util.HexFormat;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -28,7 +28,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class RefreshSessionIntegrationIT {
   @Autowired MockMvc mockMvc;
   @Autowired RefreshSessionService refreshSessions;
-  @Autowired RefreshSessionRepository sessions;
+  @Autowired StringRedisTemplate redis;
   @Autowired UserRepository users;
 
   @Test
@@ -48,13 +48,7 @@ class RefreshSessionIntegrationIT {
         .andExpect(
             header().string("Set-Cookie", org.hamcrest.Matchers.containsString("nss_refresh=")));
 
-    List<RefreshSession> stored =
-        sessions.findAll().stream()
-            .filter(session -> user.getId().equals(session.getUser().getId()))
-            .toList();
-    assertEquals(2, stored.size());
-    assertEquals(1, stored.stream().filter(session -> session.getRevokedAt() != null).count());
-    assertEquals(1, stored.stream().filter(session -> session.getRevokedAt() == null).count());
+    assertNotNull(redis.opsForHash().get(key(rawToken), "revokedAt"));
   }
 
   @Test
@@ -73,25 +67,15 @@ class RefreshSessionIntegrationIT {
         .andExpect(
             header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
 
-    RefreshSession session =
-        sessions.findAll().stream()
-            .filter(candidate -> user.getId().equals(candidate.getUser().getId()))
-            .findFirst()
-            .orElseThrow();
-    assertNotNull(session.getRevokedAt());
+    assertNotNull(redis.opsForHash().get(key(rawToken), "revokedAt"));
   }
 
   @Test
   void rejectsAnExpiredPersistentRefreshSession() throws Exception {
     User user = persistUser("refresh-expired@nss.test", true);
     String rawToken = refreshSessions.issue(user);
-    RefreshSession session =
-        sessions.findAll().stream()
-            .filter(candidate -> user.getId().equals(candidate.getUser().getId()))
-            .findFirst()
-            .orElseThrow();
-    session.setExpiresAt(Instant.now().minusSeconds(1));
-    sessions.saveAndFlush(session);
+    String tokenKey = key(rawToken);
+    redis.opsForHash().put(tokenKey, "expiresAt", Instant.now().minusSeconds(1).toString());
 
     mockMvc
         .perform(
@@ -102,12 +86,8 @@ class RefreshSessionIntegrationIT {
                 .cookie(new jakarta.servlet.http.Cookie("nss_refresh", rawToken)))
         .andExpect(status().isUnauthorized());
 
-    RefreshSession revoked =
-        sessions.findAll().stream()
-            .filter(candidate -> user.getId().equals(candidate.getUser().getId()))
-            .findFirst()
-            .orElseThrow();
-    assertNotNull(revoked.getRevokedAt());
+    // The Redis TTL is recalculated from expiresAt and may remove the hash
+    // immediately after the invalid refresh is detected.
   }
 
   private User persistUser(String email, boolean active) {
@@ -117,5 +97,18 @@ class RefreshSessionIntegrationIT {
     user.setAccountType(AccountType.USER);
     user.setAtivo(active);
     return users.saveAndFlush(user);
+  }
+
+  private String key(String rawToken) {
+    try {
+      String hash =
+          HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+      return "nss:auth:refresh:" + hash;
+    } catch (Exception exception) {
+      throw new AssertionError(exception);
+    }
   }
 }

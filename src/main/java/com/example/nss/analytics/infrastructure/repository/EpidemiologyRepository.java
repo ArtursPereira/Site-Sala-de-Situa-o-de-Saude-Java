@@ -42,8 +42,7 @@ public class EpidemiologyRepository {
         new StringBuilder("SELECT ")
             .append(territory)
             .append(
-                " AS code, SUM(f.cases_total) AS total FROM analytics.fato_casos f"
-                    + " WHERE 1=1");
+                " AS code, SUM(f.cases_total) AS total FROM analytics.fato_casos f" + " WHERE 1=1");
     MapSqlParameterSource p = parameters(f, sql);
     if (geography == Geography.MUNICIPALITY && f.municipalityCode() != null) {
       sql.append(" AND f.cd_mun = :municipalityCode");

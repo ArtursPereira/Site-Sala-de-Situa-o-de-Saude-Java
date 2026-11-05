@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class AuthRateLimiter {
   private static final String PREFIX = "nss:auth:rate-limit:";
+  private static final String LOGIN_OPERATION = "login";
   private static final DefaultRedisScript<Long> RESERVE_SCRIPT =
       new DefaultRedisScript<>(
           "local started=redis.call('HGET',KEYS[1],'startedAt') "
@@ -57,7 +58,7 @@ public class AuthRateLimiter {
     this.resetMaximum = resetMaximum;
     this.window = Duration.ofSeconds(windowSeconds);
     this.useRedis = !"memory".equalsIgnoreCase(backend);
-    this.compatibilityAttempts = useRedis ? null : new ConcurrentHashMap<>();
+    this.compatibilityAttempts = new ConcurrentHashMap<>();
   }
 
   /** Compatibility constructor for isolated unit tests; application wiring always uses Redis. */
@@ -71,15 +72,16 @@ public class AuthRateLimiter {
   }
 
   public synchronized void registerLoginAttempt(String email) {
-    reserve("login", email, loginMaximum);
+    reserve(LOGIN_OPERATION, email, loginMaximum);
   }
 
   public synchronized void checkLogin(String email) {
-    check("login", email, loginMaximum);
+    check(LOGIN_OPERATION, email, loginMaximum);
   }
 
   public void loginSucceeded(String email) {
-    if (useRedis) redis.delete(key("login", email)); else compatibilityAttempts.remove(key("login", email));
+    if (useRedis) redis.delete(key(LOGIN_OPERATION, email));
+    else compatibilityAttempts.remove(key(LOGIN_OPERATION, email));
   }
 
   public synchronized void registerPasswordResetRequest(String email) {
@@ -89,16 +91,20 @@ public class AuthRateLimiter {
   private void check(String operation, String email, int maximum) {
     if (!useRedis) {
       Attempt attempt = compatibilityAttempts.get(key(operation, email));
-      if (attempt == null || attempt.startedAt.plus(window).isBefore(java.time.Instant.now())) { compatibilityAttempts.remove(key(operation, email)); return; }
+      if (attempt == null || attempt.startedAt.plus(window).isBefore(java.time.Instant.now())) {
+        compatibilityAttempts.remove(key(operation, email));
+        return;
+      }
       if (attempt.count >= maximum) throw new RateLimitExceededException();
       return;
     }
-    Long allowed = redis.execute(
-        CHECK_SCRIPT,
-        List.of(key(operation, email)),
-        Long.toString(System.currentTimeMillis() / 1000),
-        Long.toString(window.toSeconds()),
-        Integer.toString(maximum));
+    Long allowed =
+        redis.execute(
+            CHECK_SCRIPT,
+            List.of(key(operation, email)),
+            Long.toString(System.currentTimeMillis() / 1000),
+            Long.toString(window.toSeconds()),
+            Integer.toString(maximum));
     if (!Long.valueOf(1L).equals(allowed)) throw new RateLimitExceededException();
   }
 
@@ -106,17 +112,19 @@ public class AuthRateLimiter {
     if (!useRedis) {
       String key = key(operation, email);
       Attempt attempt = compatibilityAttempts.get(key);
-      if (attempt == null || !attempt.startedAt.plus(window).isAfter(java.time.Instant.now())) attempt = new Attempt(0, java.time.Instant.now());
+      if (attempt == null || !attempt.startedAt.plus(window).isAfter(java.time.Instant.now()))
+        attempt = new Attempt(0, java.time.Instant.now());
       if (attempt.count >= maximum) throw new RateLimitExceededException();
       compatibilityAttempts.put(key, new Attempt(attempt.count + 1, attempt.startedAt));
       return;
     }
-    Long allowed = redis.execute(
-        RESERVE_SCRIPT,
-        List.of(key(operation, email)),
-        Long.toString(System.currentTimeMillis() / 1000),
-        Long.toString(window.toSeconds()),
-        Integer.toString(maximum));
+    Long allowed =
+        redis.execute(
+            RESERVE_SCRIPT,
+            List.of(key(operation, email)),
+            Long.toString(System.currentTimeMillis() / 1000),
+            Long.toString(window.toSeconds()),
+            Integer.toString(maximum));
     if (!Long.valueOf(1L).equals(allowed)) throw new RateLimitExceededException();
   }
 

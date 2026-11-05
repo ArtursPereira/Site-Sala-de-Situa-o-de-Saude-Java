@@ -11,7 +11,6 @@ import com.example.nss.user.domain.AccountType;
 import com.example.nss.user.domain.FirstAccessToken;
 import com.example.nss.user.domain.User;
 import com.example.nss.user.infrastructure.repository.FirstAccessTokenRepository;
-import com.example.nss.user.infrastructure.repository.RefreshSessionRepository;
 import com.example.nss.user.infrastructure.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -21,6 +20,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -33,8 +33,8 @@ class FirstAccessIntegrationIT {
   @Autowired MockMvc mockMvc;
   @Autowired UserRepository users;
   @Autowired FirstAccessTokenRepository tokens;
-  @Autowired RefreshSessionRepository sessions;
   @Autowired RefreshSessionService refreshSessions;
+  @Autowired StringRedisTemplate redis;
 
   @MockitoBean MailService mail;
 
@@ -64,7 +64,7 @@ class FirstAccessIntegrationIT {
     User user = persistUser("password-reset-http@nss.test", true);
     user.setPassword("old-password");
     users.saveAndFlush(user);
-    refreshSessions.issue(user);
+    String refreshToken = refreshSessions.issue(user);
     createToken(user, "password-reset-http-token", "PASSWORD_RESET");
 
     mockMvc
@@ -81,12 +81,7 @@ class FirstAccessIntegrationIT {
     assertNotNull(reset.getPassword());
     assertEquals(true, reset.isAtivo());
     assertEquals("COMPLETED", tokens.findByUserId(user.getId()).orElseThrow().getStatus());
-    assertEquals(
-        1,
-        sessions.findAll().stream()
-            .filter(session -> user.getId().equals(session.getUser().getId()))
-            .filter(session -> session.getRevokedAt() != null)
-            .count());
+    assertNotNull(redis.opsForHash().get(redisKey(refreshToken), "revokedAt"));
   }
 
   @Test
@@ -116,6 +111,18 @@ class FirstAccessIntegrationIT {
     user.setAccountType(AccountType.USER);
     user.setAtivo(active);
     return users.saveAndFlush(user);
+  }
+
+  private String redisKey(String rawToken) {
+    try {
+      return "nss:auth:refresh:"
+          + HexFormat.of()
+              .formatHex(
+                  MessageDigest.getInstance("SHA-256")
+                      .digest(rawToken.getBytes(StandardCharsets.UTF_8)));
+    } catch (Exception exception) {
+      throw new AssertionError(exception);
+    }
   }
 
   private void createToken(User user, String rawToken, String purpose) {

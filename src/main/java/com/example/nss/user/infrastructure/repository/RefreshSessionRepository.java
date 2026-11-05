@@ -2,8 +2,8 @@ package com.example.nss.user.infrastructure.repository;
 
 import com.example.nss.user.domain.RefreshSession;
 import java.time.Instant;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 
 /** Legacy test seam retained while refresh persistence lives in Redis. */
 public interface RefreshSessionRepository {
