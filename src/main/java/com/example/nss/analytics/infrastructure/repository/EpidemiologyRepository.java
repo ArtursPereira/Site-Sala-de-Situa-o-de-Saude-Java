@@ -43,7 +43,6 @@ public class EpidemiologyRepository {
             .append(territory)
             .append(
                 " AS code, SUM(f.cases_total) AS total FROM analytics.fato_casos f"
-                    + currentPublicationJoin()
                     + " WHERE 1=1");
     MapSqlParameterSource p = parameters(f, sql);
     if (geography == Geography.MUNICIPALITY && f.municipalityCode() != null) {
@@ -59,7 +58,7 @@ public class EpidemiologyRepository {
       sql.append(" AND f.notification_district_id = :districtCode");
       p.addValue("districtCode", f.districtCode());
     }
-    sql.append(currentPublicationPredicate());
+    sql.append(currentPublicationClause(f));
     sql.append(" AND ")
         .append(mappedPredicate(geography, mappedIds, p))
         .append(" GROUP BY ")
@@ -76,7 +75,6 @@ public class EpidemiologyRepository {
             .append(mapped)
             .append(
                 " THEN f.cases_total ELSE 0 END),0) AS mapped FROM analytics.fato_casos f"
-                    + currentPublicationJoin()
                     + " WHERE 1=1");
     MapSqlParameterSource p = parameters(f, sql);
     p.addValues(territoryParams.getValues());
@@ -89,7 +87,7 @@ public class EpidemiologyRepository {
       sql.append(" AND f.notification_district_id = :districtCode");
       p.addValue("districtCode", f.districtCode());
     }
-    sql.append(currentPublicationPredicate());
+    sql.append(currentPublicationClause(f));
     return jdbc.queryForObject(
         sql.toString(),
         p,
@@ -119,12 +117,17 @@ public class EpidemiologyRepository {
   }
 
   /** Restringe os fatos ao lote atualmente publicado pela pipeline. */
-  private String currentPublicationJoin() {
-    return " JOIN analytics.pipeline_current_publication current_publication"
-        + " ON current_publication.disease_codigo = f.disease_codigo"
-        + " AND current_publication.ano = f.ano"
-        + " AND current_publication.cd_mun = f.cd_mun"
-        + " AND current_publication.batch_id = f.batch_id";
+  private String currentPublicationClause(EpidemiologyFilter f) {
+    if (f.disease() != null && f.year() != null && f.municipalityCode() != null) {
+      return " AND f.batch_id = ("
+          + "SELECT current_publication.batch_id"
+          + " FROM analytics.pipeline_current_publication current_publication"
+          + " WHERE current_publication.disease_codigo = :disease"
+          + " AND current_publication.ano = :year"
+          + " AND current_publication.cd_mun = :municipalityCode"
+          + ")";
+    }
+    return currentPublicationPredicate();
   }
 
   private String currentPublicationPredicate() {
