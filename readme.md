@@ -136,7 +136,11 @@ Manter esses elementos privados impede que controllers, frontend ou outros módu
 
 ### Banco e migrações
 
-O Flyway migra o schema operacional `public`. O Alembic da pipeline migra o schema analítico `analytics`; os dois históricos são independentes. Em um banco compartilhado já existente, `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true` e `SPRING_FLYWAY_BASELINE_VERSION=0` permitem que o Java crie seu histórico sem recriar o PostgreSQL nem modificar as tabelas analíticas.
+O Flyway migra o schema operacional `public`. O Alembic da pipeline migra o schema analítico `analytics`; os dois históricos são independentes. O arquivo `V0001__initial_schema.sql` é a migration inicial consolidada (`version=1`, exibida operacionalmente como `0001`) e representa diretamente o estado atual do schema: `users`, `user_first_access`, `refresh_sessions`, índices de e-mail normalizado e índices de sessão.
+
+Essa consolidação é o ponto de partida para bancos novos. Ela substitui o histórico anterior `V1`–`V6`; não deve ser aplicada sobre um banco que ainda tenha `flyway_schema_history` apontando para as migrations antigas sem antes recriar o schema operacional ou executar um procedimento explícito de baseline controlado. O banco analítico e seus dados não são apagados por essa mudança.
+
+Em um ambiente descartável, recrie somente o schema operacional antes de iniciar o Java para que o Flyway execute a `0001` desde o início. Em um banco compartilhado já existente, use `SPRING_FLYWAY_BASELINE_ON_MIGRATE=true` e `SPRING_FLYWAY_BASELINE_VERSION=0` apenas quando as tabelas atuais já forem equivalentes ao schema consolidado; isso registra o ponto de partida sem modificar as tabelas analíticas.
 
 O datasource analítico usa `read-only=true`. A aplicação consulta `dim_doenca`, `dim_municipio`, `dim_unidade_saude`, `fato_casos` e `pipeline_current_publication`; a pipeline é a responsável por escrever e publicar esses dados.
 
