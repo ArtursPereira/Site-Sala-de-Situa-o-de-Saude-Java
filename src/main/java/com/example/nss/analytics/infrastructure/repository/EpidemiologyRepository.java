@@ -41,7 +41,10 @@ public class EpidemiologyRepository {
     StringBuilder sql =
         new StringBuilder("SELECT ")
             .append(territory)
-            .append(" AS code, SUM(f.cases_total) AS total FROM analytics.fato_casos f WHERE 1=1");
+            .append(
+                " AS code, SUM(f.cases_total) AS total FROM analytics.fato_casos f"
+                    + currentPublicationJoin()
+                    + " WHERE 1=1");
     MapSqlParameterSource p = parameters(f, sql);
     if (geography == Geography.MUNICIPALITY && f.municipalityCode() != null) {
       sql.append(" AND f.cd_mun = :municipalityCode");
@@ -72,7 +75,9 @@ public class EpidemiologyRepository {
         new StringBuilder("SELECT COALESCE(SUM(f.cases_total),0) AS total, COALESCE(SUM(CASE WHEN ")
             .append(mapped)
             .append(
-                " THEN f.cases_total ELSE 0 END),0) AS mapped FROM analytics.fato_casos f WHERE 1=1");
+                " THEN f.cases_total ELSE 0 END),0) AS mapped FROM analytics.fato_casos f"
+                    + currentPublicationJoin()
+                    + " WHERE 1=1");
     MapSqlParameterSource p = parameters(f, sql);
     p.addValues(territoryParams.getValues());
     if (f.municipalityCode() != null) {
@@ -114,6 +119,14 @@ public class EpidemiologyRepository {
   }
 
   /** Restringe os fatos ao lote atualmente publicado pela pipeline. */
+  private String currentPublicationJoin() {
+    return " JOIN analytics.pipeline_current_publication current_publication"
+        + " ON current_publication.disease_codigo = f.disease_codigo"
+        + " AND current_publication.ano = f.ano"
+        + " AND current_publication.cd_mun = f.cd_mun"
+        + " AND current_publication.batch_id = f.batch_id";
+  }
+
   private String currentPublicationPredicate() {
     return " AND EXISTS ("
         + "SELECT 1 FROM analytics.pipeline_current_publication current_publication"
