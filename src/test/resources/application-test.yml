@@ -15,3 +15,7 @@ analytics:
     password:
 jwt:
   secret: ZmFrZS10ZXN0LXNlY3JldC1sb25nLWVub3VnaC1mb3ItaHMyNTYtMzI=
+api:
+  auth:
+    rate-limit:
+      backend: memory

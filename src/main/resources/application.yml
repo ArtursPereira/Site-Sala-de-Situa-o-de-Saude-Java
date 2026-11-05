@@ -23,6 +23,10 @@ spring:
       ddl-auto: ${SPRING_JPA_HIBERNATE_DDL_AUTO:validate}
     open-in-view: false
 
+  data:
+    redis:
+      url: ${SPRING_DATA_REDIS_URL:redis://localhost:6379}
+
   flyway:
     enabled: true
     user: ${SPRING_FLYWAY_USER:${SPRING_DATASOURCE_USERNAME:nss}}

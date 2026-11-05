@@ -8,15 +8,16 @@ O backend é uma aplicação modular em camadas, organizada por responsabilidade
 
 - `web`: adaptadores HTTP. Controllers recebem parâmetros, delegam o caso de uso e devolvem DTOs da API.
 - `application`: casos de uso e orquestração. Valida filtros, consulta o catálogo territorial, calcula cobertura e compõe respostas.
-- `domain`: tipos e regras centrais, como `Geography`, `EpidemiologyFilter`, `CoverageStatus`, `User` e as entidades de sessão.
-- `infrastructure`: integração com PostgreSQL, JPA, JDBC, Flyway, arquivos TSV territoriais e inicialização do administrador.
+- `domain`: tipos e regras centrais, como `Geography`, `EpidemiologyFilter`, `CoverageStatus` e `User`.
+- `infrastructure`: integração com PostgreSQL, Redis, JPA, JDBC, Flyway, arquivos TSV territoriais e inicialização do administrador.
 - `api`: requests e responses públicos. Records são imutáveis e definem o contrato JSON sem expor entidades persistidas.
 - `shared`: capacidades transversais, como tratamento de erros e envio de e-mail.
 
 O frontend é o cliente da API. Em produção, o Nginx pode encaminhar `/api/` para o Java, mantendo frontend e API na mesma origem. O Java possui dois datasources independentes:
 
-1. o datasource operacional, usado por JPA/Flyway para usuários, convites, tokens e sessões de refresh;
-2. o datasource analítico, somente leitura, usado por `JdbcTemplate` para consultar `analytics.*`, publicado pela pipeline.
+1. o datasource operacional, usado por JPA/Flyway para usuários, convites e tokens de primeiro acesso;
+2. o datasource analítico, somente leitura, usado por `JdbcTemplate` para consultar `analytics.*`, publicado pela pipeline;
+3. o Redis persistente, usado para refresh sessions e rate limit distribuído de autenticação.
 
 O Java nunca lê Parquet, PySUS, SINAN bruto ou CNES em tempo de consulta. A pipeline processa esses artefatos, enriquece os fatos com CNES/IBGE e publica o resultado no PostgreSQL. A tabela `analytics.pipeline_current_publication` restringe as consultas ao lote corrente de cada doença, ano e município.
 
@@ -65,7 +66,7 @@ flowchart LR
 
     Users --> JPA
     FirstAccess --> JPA
-    Refresh --> JPA
+    Refresh --> Redis[(Redis persistente)]
     JPA --> MainDB
     Epidemiology --> JDBC
     Epidemiology --> Legacy
@@ -95,7 +96,7 @@ O frontend recebe os totais já calculados. Ele não acessa o banco e não soma 
 
 #### Autenticação
 
-`AuthController` coordena login, refresh, logout, primeiro acesso, recuperação de senha e endpoint CSRF. O login valida credenciais com `UserService`, aplica `AuthRateLimiter`, emite JWT pelo `JwtService` e grava o refresh token somente como cookie HttpOnly por meio de `RefreshSessionService`.
+`AuthController` coordena login, refresh, logout, primeiro acesso, recuperação de senha e endpoint CSRF. O login valida credenciais com `UserService`, aplica `AuthRateLimiter`, emite JWT pelo `JwtService` e grava o refresh token somente como cookie HttpOnly por meio de `RefreshSessionService`. As sessões de refresh ficam em hashes Redis com TTL e rotação protegida por lock; não são mais persistidas em SQL.
 
 `JwtAuthenticationFilter` lê o bearer token, valida sua assinatura e carrega o usuário pelo `CustomUserDetailsService`. `SecurityConfig` define rotas públicas, CORS, CSRF, cookies, permissões e a política stateless.
 
@@ -114,7 +115,7 @@ O frontend recebe os totais já calculados. Ele não acessa o banco e não soma 
 | Usuários application | `UserService`, `AdminUserService`, `FirstAccessService`, `RefreshSessionService` | Executa os casos de uso de identidade e sessão. |
 | Segurança | `SecurityConfig`, `JwtService`, `JwtAuthenticationFilter`, `CustomUserDetailsService`, `EmailNormalizer`, `AuthRateLimiter` | Protege endpoints, normaliza identidade, limita tentativas e valida JWT. |
 | Analytics persistence | `EpidemiologyRepository`, `AnalyticsRepository`, `EpidemiologyRowMapper` | Executa SQL analítico e transforma linhas em records internos. |
-| Usuários persistence | `UserRepository`, `FirstAccessTokenRepository`, `RefreshSessionRepository` | Acessa entidades operacionais via Spring Data JPA. |
+| Usuários persistence | `UserRepository`, `FirstAccessTokenRepository` | Acessa usuários e tokens de primeiro acesso via Spring Data JPA. |
 | Configuração | `AnalyticsDataSourceConfig`, `BootstrapAdminInitializer` | Cria os dois datasources e inicializa o administrador configurado. |
 | Contratos | `AnalyticsResponse`, `MetadataResponse`, `LoginResponse`, `UserResponse` e demais records | Define o JSON público da API. |
 | Transversal | `GlobalExceptionHandler`, `ErrorResponse`, `MailService` | Padroniza erros e entrega notificações por e-mail. |
@@ -128,15 +129,16 @@ Os métodos `private` não são endpoints nem casos de uso públicos. São parte
 - `TerritoryCatalog.load()`, `loadMunicipalities()` e `readTsv(...)` carregam e validam os catálogos TSV uma única vez; o `record Entry` representa uma entrada territorial imutável.
 - `EpidemiologyRowMapper` tem construtor privado porque é uma fábrica estática de `RowMapper`; não representa um objeto com estado.
 - `UserService.view(...)` e `AdminUserService.view(...)` convertem entidades em respostas sem expor senha, hash ou detalhes de persistência.
-- `AuthRateLimiter.check(...)`, `reserve(...)`, `expired(...)`, `removeExpiredAttempts()` e `evictOldestIfNecessary()` protegem o estado interno do limite de tentativas; o `private record AttemptWindow` guarda a janela de contagem sem virar parte da API da aplicação.
+- `AuthRateLimiter.check(...)`, `reserve(...)` e `key(...)` executam scripts atômicos no Redis; a janela expira por TTL e o estado não fica preso à memória de uma instância.
+- `RefreshSessionService.newSession(...)`, `saveRedis(...)`, `readRedis(...)` e `rotateLegacy(...)` encapsulam o formato Redis, o TTL e a rotação.
 - `EmailNormalizer` tem construtor privado porque é uma classe utilitária estática; `SecureRandomTokenGenerator` encapsula a geração criptograficamente segura de tokens.
-- Campos `private final` de controllers, serviços e repositories são dependências injetadas pelo Spring. Campos privados das entidades são o estado persistido, acessado por JPA e pelos métodos de domínio.
+- Campos `private final` de controllers, serviços e repositories são dependências injetadas pelo Spring. Campos privados de `User` e `FirstAccessToken` são o estado persistido em SQL; os campos de `RefreshSession` representam o payload interno serializado no Redis.
 
 Manter esses elementos privados impede que controllers, frontend ou outros módulos dependam de detalhes de implementação. Se uma regra precisar ser reutilizada por mais de uma classe, ela deve ser extraída para um serviço, mapper ou componente com contrato próprio, em vez de simplesmente tornar o método público.
 
 ### Banco e migrações
 
-O Flyway migra o schema operacional `public`. O Alembic da pipeline migra o schema analítico `analytics`; os dois históricos são independentes. O arquivo `V0001__initial_schema.sql` é a migration inicial consolidada (`version=1`, exibida operacionalmente como `0001`) e representa diretamente o estado atual do schema: `users`, `user_first_access`, `refresh_sessions`, índices de e-mail normalizado e índices de sessão.
+O Flyway migra o schema operacional `public`. O Alembic da pipeline migra o schema analítico `analytics`; os dois históricos são independentes. O arquivo `V0001__initial_schema.sql` é a migration inicial consolidada (`version=1`, exibida operacionalmente como `0001`) e representa diretamente o estado atual do schema SQL: `users`, `user_first_access` e índices de e-mail normalizado. Refresh sessions e rate limits são dados Redis, com TTL e persistência AOF.
 
 Essa consolidação é o ponto de partida para bancos novos. Ela substitui o histórico anterior `V1`–`V6`; não deve ser aplicada sobre um banco que ainda tenha `flyway_schema_history` apontando para as migrations antigas sem antes recriar o schema operacional ou executar um procedimento explícito de baseline controlado. O banco analítico e seus dados não são apagados por essa mudança.
 
