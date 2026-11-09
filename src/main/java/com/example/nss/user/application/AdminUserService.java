@@ -73,9 +73,10 @@ public class AdminUserService {
       throw new IllegalArgumentException("Você não pode desativar sua própria conta");
     if (!active && user.getAccountType() == AccountType.ADMIN)
       throw new IllegalArgumentException("Admin não pode desativar outro admin");
+    boolean wasActive = user.isAtivo();
     user.setAtivo(active);
-    User saved = users.save(user);
-    if (!active) refreshSessions.revokeAllForUser(saved.getId());
+    User saved = users.saveAndFlush(user);
+    if (!active || !wasActive) refreshSessions.revokeAllForUser(saved.getId());
     return view(saved);
   }
 
@@ -87,7 +88,7 @@ public class AdminUserService {
             .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
     user.setPassword(null);
     user.setPasswordCreatedAt(null);
-    users.save(user);
+    users.saveAndFlush(user);
     refreshSessions.revokeAllForUser(user.getId());
     firstAccess.issuePasswordReset(user);
   }

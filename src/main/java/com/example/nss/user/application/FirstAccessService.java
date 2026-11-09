@@ -124,8 +124,8 @@ public class FirstAccessService {
       throw new IllegalArgumentException("E-mail não corresponde ao link");
     user.setPassword(encoder.encode(request.password()));
     user.setPasswordCreatedAt(Instant.now());
+    users.saveAndFlush(user);
     refreshSessions.revokeAllForUser(user.getId());
-    users.save(user);
     invite.setStatus("COMPLETED");
     invite.setCompletedAt(Instant.now());
     invite.setPasswordCreatedAt(Instant.now());

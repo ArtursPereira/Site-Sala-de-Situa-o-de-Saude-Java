@@ -36,6 +36,7 @@ public class JwtService {
 
     return Jwts.builder()
         .subject(String.valueOf(user.getId()))
+        .claim("accountRevision", VersionedUserDetails.revision(user))
         .issuedAt(issuedAt)
         .expiration(expirationDate)
         .signWith(signingKey)
@@ -50,6 +51,11 @@ public class JwtService {
     long tokenUserId = extractUserId(token);
 
     return tokenUserId == userId && enabled && !isTokenExpired(token);
+  }
+
+  public boolean hasAccountRevision(String token, long revision) {
+    Long tokenRevision = extractClaim(token, claims -> claims.get("accountRevision", Long.class));
+    return tokenRevision != null && tokenRevision == revision;
   }
 
   private boolean isTokenExpired(String token) {

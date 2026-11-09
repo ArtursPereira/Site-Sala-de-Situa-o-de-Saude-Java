@@ -64,6 +64,7 @@ public class AuthController {
 
   @PostMapping("/first-access")
   public ResponseEntity<Void> firstAccess(@Valid @RequestBody FirstAccessRequest request) {
+    rateLimiter.registerFirstAccessAttempt();
     firstAccessService.complete(request);
     return ResponseEntity.noContent().build();
   }
@@ -79,6 +80,7 @@ public class AuthController {
   @PostMapping("/password-reset/complete")
   public ResponseEntity<Void> completePasswordReset(
       @Valid @RequestBody PasswordResetCompleteRequest request) {
+    rateLimiter.registerPasswordResetCompletion();
     firstAccessService.completePasswordReset(request);
     return ResponseEntity.noContent().build();
   }
@@ -118,7 +120,6 @@ public class AuthController {
     } catch (AuthenticationException exception) {
       throw exception;
     }
-    rateLimiter.loginSucceeded(request.email());
 
     if (!(authenticationResult.getPrincipal() instanceof UserDetails userDetails)) {
       throw new AuthenticationServiceException("A autenticação não retornou um usuário válido");
@@ -126,7 +127,7 @@ public class AuthController {
 
     com.example.nss.user.domain.User entity = userService.entityByEmail(userDetails.getUsername());
     String token = jwtService.generateToken(entity);
-    String refresh = refreshSessions.issue(entity);
+    String refresh = refreshSessions.issue(entity, request.password());
     addRefreshCookie(response, refresh);
     UserResponse user = userService.getByEmail(userDetails.getUsername());
     return ResponseEntity.ok(
@@ -136,6 +137,7 @@ public class AuthController {
   @PostMapping("/refresh")
   public ResponseEntity<LoginResponse> refresh(
       HttpServletRequest request, HttpServletResponse response) {
+    rateLimiter.registerRefreshAttempt();
     String token = cookie(request);
     RefreshSessionService.Rotation rotation = refreshSessions.rotateWithToken(token);
     UserDetails userDetails = userDetailsService.loadUserByUsername(rotation.user().getEmail());

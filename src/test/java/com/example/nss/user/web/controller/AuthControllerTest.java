@@ -65,7 +65,7 @@ class AuthControllerTest {
     when(authenticationManager.authenticate(any())).thenReturn(authentication);
     when(userService.entityByEmail("ana@example.com")).thenReturn(user);
     when(jwtService.generateToken(user)).thenReturn("access-token");
-    when(refreshSessions.issue(user)).thenReturn("refresh-token");
+    when(refreshSessions.issue(user, "secret")).thenReturn("refresh-token");
     when(userService.getByEmail("ana@example.com")).thenReturn(userResponse);
     ReflectionTestUtils.setField(controller, "refreshCookieName", "nss_refresh");
     ReflectionTestUtils.setField(controller, "refreshExpiration", 604_800_000L);
@@ -90,7 +90,6 @@ class AuthControllerTest {
         () -> controller.login(new LoginRequest("user@example.com", "wrong"), response));
 
     verify(rateLimiter).registerLoginAttempt("user@example.com");
-    verify(rateLimiter, never()).loginSucceeded(any());
   }
 
   @Test
@@ -103,7 +102,7 @@ class AuthControllerTest {
         () -> controller.login(new LoginRequest("user@example.com", "secret"), response));
 
     verify(userService, never()).entityByEmail(any());
-    verify(refreshSessions, never()).issue(any());
+    verify(refreshSessions, never()).issue(any(), any());
   }
 
   @Test

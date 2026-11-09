@@ -94,7 +94,7 @@ class AdminUserServiceTest {
   void deactivatesUserAndRevokesSessions() {
     User user = user(5L, "user@example.com", AccountType.USER);
     when(users.findById(5L)).thenReturn(Optional.of(user));
-    when(users.save(user)).thenReturn(user);
+    when(users.saveAndFlush(user)).thenReturn(user);
     when(firstAccess.pending(user)).thenReturn(false);
 
     var response = service.setActive(5L, false, "admin@example.com");
@@ -105,10 +105,23 @@ class AdminUserServiceTest {
   }
 
   @Test
+  void reactivationRevokesSessionsIssuedDuringDeactivation() {
+    User user = user(15L, "returning@example.com", AccountType.USER);
+    user.setAtivo(false);
+    when(users.findById(15L)).thenReturn(Optional.of(user));
+    when(users.saveAndFlush(user)).thenReturn(user);
+
+    service.setActive(15L, true, "admin@example.com");
+
+    assertEquals(true, user.isAtivo());
+    verify(refreshSessions).revokeAllForUser(15L);
+  }
+
+  @Test
   void protectsActorAndOtherAdminsFromDeactivation() {
     User actor = user(6L, "admin@example.com", AccountType.ADMIN);
     when(users.findById(6L)).thenReturn(Optional.of(actor));
-    when(users.save(actor)).thenReturn(actor);
+    when(users.saveAndFlush(actor)).thenReturn(actor);
     assertThrows(
         IllegalArgumentException.class, () -> service.setActive(6L, false, actor.getEmail()));
     assertEquals(true, service.setActive(6L, true, actor.getEmail()).active());
@@ -125,7 +138,7 @@ class AdminUserServiceTest {
     user.setPassword("old");
     user.setPasswordCreatedAt(java.time.Instant.now());
     when(users.findById(8L)).thenReturn(Optional.of(user));
-    when(users.save(user)).thenReturn(user);
+    when(users.saveAndFlush(user)).thenReturn(user);
 
     service.resetPassword(8L);
 

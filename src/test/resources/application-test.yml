@@ -3,8 +3,6 @@ spring:
     url: jdbc:h2:mem:nss;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     username: sa
     password:
-  flyway:
-    enabled: false
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -15,7 +13,3 @@ analytics:
     password:
 jwt:
   secret: ZmFrZS10ZXN0LXNlY3JldC1sb25nLWVub3VnaC1mb3ItaHMyNTYtMzI=
-api:
-  auth:
-    rate-limit:
-      backend: memory

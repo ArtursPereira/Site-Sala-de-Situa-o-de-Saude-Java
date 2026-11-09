@@ -12,8 +12,7 @@ spring:
     name: sala-de-situacao
 
   datasource:
-    # Banco operacional do Java. O PostgreSQL analítico é configurado
-    # separadamente em analytics.datasource e nunca deve ser migrado pelo Flyway.
+    # O NSS-database prepara o schema antes de iniciar o Java.
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/nss}
     username: ${SPRING_DATASOURCE_USERNAME:nss}
     password: ${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}
@@ -26,11 +25,7 @@ spring:
   data:
     redis:
       url: ${SPRING_DATA_REDIS_URL:redis://localhost:6379}
-
-  flyway:
-    enabled: true
-    user: ${SPRING_FLYWAY_USER:${SPRING_DATASOURCE_USERNAME:nss}}
-    password: ${SPRING_FLYWAY_PASSWORD:${SPRING_DATASOURCE_PASSWORD:${DB_PASSWORD:}}}
+      timeout: ${AUTH_SESSION_REDIS_TIMEOUT:500ms}
 
   mail:
     host: ${MAIL_HOST:localhost}
@@ -69,7 +64,11 @@ api:
       login-maximum: ${AUTH_RATE_LIMIT_LOGIN_MAXIMUM:5}
       reset-maximum: ${AUTH_RATE_LIMIT_RESET_MAXIMUM:3}
       window-seconds: ${AUTH_RATE_LIMIT_WINDOW_SECONDS:900}
-      maximum-entries: ${AUTH_RATE_LIMIT_MAXIMUM_ENTRIES:10000}
+      redis-url: ${AUTH_RATE_LIMIT_REDIS_URL:${SPRING_DATA_REDIS_URL:redis://localhost:6379}}
+      key-secret: ${AUTH_RATE_LIMIT_KEY_SECRET:${JWT_SECRET}}
+      redis-timeout-ms: ${AUTH_RATE_LIMIT_REDIS_TIMEOUT_MS:200}
+      global-per-minute: ${AUTH_RATE_LIMIT_GLOBAL_PER_MINUTE:6000}
+      ip-per-minute: ${AUTH_RATE_LIMIT_IP_PER_MINUTE:60}
 
 management:
   endpoints:
@@ -106,3 +105,7 @@ jwt:
 
 server:
   shutdown: graceful
+  forward-headers-strategy: native
+  tomcat:
+    remoteip:
+      internal-proxies: "${AUTH_TRUSTED_PROXY_REGEX:(?!)}"

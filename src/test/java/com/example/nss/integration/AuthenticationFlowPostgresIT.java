@@ -33,7 +33,8 @@ class AuthenticationFlowPostgresIT {
       "ZmFrZS1wcm9kLXNlY3JldC1sb25nLWVub3VnaC1mb3ItaHMyNTYtMzI=";
 
   @Container
-  static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:16-alpine");
+  static final PostgreSQLContainer POSTGRES =
+      new PostgreSQLContainer("postgres:16-alpine").withInitScript("nss-schema/app.sql");
 
   @Autowired MockMvc mockMvc;
   @Autowired UserRepository users;
@@ -47,13 +48,32 @@ class AuthenticationFlowPostgresIT {
     registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
     registry.add("spring.datasource.username", POSTGRES::getUsername);
     registry.add("spring.datasource.password", POSTGRES::getPassword);
-    registry.add("spring.flyway.user", POSTGRES::getUsername);
-    registry.add("spring.flyway.password", POSTGRES::getPassword);
     registry.add("spring.docker.compose.enabled", () -> false);
     registry.add("analytics.datasource.url", POSTGRES::getJdbcUrl);
     registry.add("analytics.datasource.username", POSTGRES::getUsername);
     registry.add("analytics.datasource.password", POSTGRES::getPassword);
     registry.add("jwt.secret", () -> JWT_SECRET);
+  }
+
+  @Test
+  void accountVersionRejectsTokenAfterReactivationInPostgres() throws Exception {
+    persistUser("versioned@nss.test", "Versioned", AccountType.USER, true, "Password123!");
+    User user = users.findByEmailIgnoreCase("versioned@nss.test").orElseThrow();
+    String oldToken = jwtService.generateToken(user);
+    user.setAtivo(false);
+    user = users.saveAndFlush(user);
+    user.setAtivo(true);
+    users.saveAndFlush(user);
+    User fresh = users.findById(user.getId()).orElseThrow();
+
+    mockMvc
+        .perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + oldToken))
+        .andExpect(status().isUnauthorized());
+    mockMvc
+        .perform(
+            get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + jwtService.generateToken(fresh)))
+        .andExpect(status().isOk());
   }
 
   @Test
@@ -129,6 +149,7 @@ class AuthenticationFlowPostgresIT {
   void rejectsExpiredAndTamperedTokensOnProtectedEndpoints() throws Exception {
     User expiredUser = new User();
     expiredUser.setId(999L);
+    expiredUser.setAccountVersion(0L);
     expiredUser.setEmail("expired@nss.test");
     String expired = new JwtService(JWT_SECRET, -1).generateToken(expiredUser);
 

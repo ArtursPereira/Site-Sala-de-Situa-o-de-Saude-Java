@@ -2,32 +2,40 @@ package com.example.nss.user.application;
 
 import com.example.nss.user.domain.RefreshSession;
 import com.example.nss.user.domain.User;
+import com.example.nss.user.exception.AuthStoreUnavailableException;
 import com.example.nss.user.infrastructure.repository.RefreshSessionRepository;
 import com.example.nss.user.infrastructure.repository.UserRepository;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RefreshSessionService {
   private static final String PREFIX = "nss:auth:refresh:";
-  private static final String USER_PREFIX = PREFIX + "user:";
+  private static final DefaultRedisScript<Long> ISSUE_SCRIPT = script("refresh-issue.lua");
+  private static final DefaultRedisScript<Long> ROTATE = script("refresh-rotate.lua");
+  private static final DefaultRedisScript<Long> REVOKE_SCRIPT = script("refresh-revoke.lua");
+  private static final DefaultRedisScript<Long> REVOKE_ALL = script("refresh-revoke-all.lua");
   private static final String INVALID_REFRESH = "Refresh inválido";
   private final StringRedisTemplate redis;
   private final UserRepository users;
+  private final PasswordEncoder passwordEncoder;
   private final RefreshSessionRepository legacySessions;
   private final SecureRandom random = new SecureRandom();
 
@@ -35,9 +43,11 @@ public class RefreshSessionService {
   private long expirationMillis;
 
   @Autowired
-  public RefreshSessionService(StringRedisTemplate redis, UserRepository users) {
+  public RefreshSessionService(
+      StringRedisTemplate redis, UserRepository users, PasswordEncoder passwordEncoder) {
     this.redis = redis;
     this.users = users;
+    this.passwordEncoder = passwordEncoder;
     this.legacySessions = null;
   }
 
@@ -45,21 +55,52 @@ public class RefreshSessionService {
   public RefreshSessionService(RefreshSessionRepository legacySessions, UserRepository users) {
     this.redis = null;
     this.users = users;
+    this.passwordEncoder = null;
     this.legacySessions = legacySessions;
   }
 
+  public String issue(User user, String authenticatedPassword) {
+    if (user.getPassword() == null
+        || !passwordEncoder.matches(authenticatedPassword, user.getPassword())) {
+      throw new BadCredentialsException(INVALID_REFRESH);
+    }
+    return issue(user);
+  }
+
   public String issue(User user) {
+    String generation =
+        legacySessions == null
+            ? redisOperation(() -> redis.opsForValue().get(generationKey(user.getId())))
+            : null;
     User managedUser =
         users
             .findById(user.getId())
             .orElseThrow(() -> new BadCredentialsException("Conta não encontrada"));
     if (!managedUser.isAtivo()) throw new BadCredentialsException("Conta desativada");
+    if (legacySessions == null
+        && !java.util.Objects.equals(user.getPassword(), managedUser.getPassword())) {
+      throw new BadCredentialsException(INVALID_REFRESH);
+    }
     String raw = randomToken();
     RefreshSession session = newSession(managedUser, raw);
     if (legacySessions != null) {
       legacySessions.save(session);
     } else {
-      saveRedis(session);
+      Long issued =
+          redisOperation(
+              () ->
+                  redis.execute(
+                      ISSUE_SCRIPT,
+                      List.of(key(session.getTokenHash()), generationKey(managedUser.getId())),
+                      session.getId().toString(),
+                      managedUser.getId().toString(),
+                      session.getCreatedAt().toString(),
+                      session.getExpiresAt().toString(),
+                      Long.toString(expirationMillis),
+                      generation == null ? "0" : generation,
+                      session.getTokenHash(),
+                      hash(managedUser.getPassword())));
+      if (!Long.valueOf(1).equals(issued)) throw new BadCredentialsException(INVALID_REFRESH);
     }
     return raw;
   }
@@ -68,38 +109,45 @@ public class RefreshSessionService {
     if (rawToken == null || rawToken.isBlank()) throw new BadCredentialsException(INVALID_REFRESH);
     String hash = hash(rawToken);
     if (legacySessions != null) return rotateLegacy(hash);
-    String lockKey = key("lock:" + hash);
-    String lockValue = UUID.randomUUID().toString();
-    Boolean locked = redis.opsForValue().setIfAbsent(lockKey, lockValue, 5, TimeUnit.SECONDS);
-    if (!Boolean.TRUE.equals(locked)) throw new BadCredentialsException("Refresh em processamento");
-    try {
-      RefreshSession current = readRedis(hash);
-      if (current == null) throw new BadCredentialsException(INVALID_REFRESH);
-      User managedUser =
-          users
-              .findById(current.getUser().getId())
-              .orElseThrow(() -> new BadCredentialsException("Conta não encontrada"));
-      current.setUser(managedUser);
-      Instant now = Instant.now();
-      if (current.getRevokedAt() != null
-          || !current.getExpiresAt().isAfter(now)
-          || !managedUser.isAtivo()) {
-        if (current.getRevokedAt() == null) {
-          current.setRevokedAt(now);
-          saveRedis(current);
-        }
-        throw new BadCredentialsException(INVALID_REFRESH);
-      }
-      String replacementRaw = randomToken();
-      RefreshSession replacement = newSession(managedUser, replacementRaw);
-      current.setRevokedAt(now);
-      current.setReplacedBySessionId(replacement.getId());
-      saveRedis(current);
-      saveRedis(replacement);
-      return new Rotation(managedUser, replacementRaw);
-    } finally {
-      redis.delete(lockKey);
+    RefreshSession current = redisOperation(() -> readRedis(hash));
+    if (current == null
+        || current.getRevokedAt() != null
+        || !current.getExpiresAt().isAfter(Instant.now())) {
+      throw new BadCredentialsException(INVALID_REFRESH);
     }
+    User managedUser =
+        users
+            .findById(current.getUser().getId())
+            .orElseThrow(() -> new BadCredentialsException(INVALID_REFRESH));
+    if (!managedUser.isAtivo()) throw new BadCredentialsException(INVALID_REFRESH);
+    String credential =
+        redisOperation(() -> (String) redis.opsForHash().get(key(hash), "credential"));
+    if (credential == null
+        || managedUser.getPassword() == null
+        || !credential.equals(hash(managedUser.getPassword()))) {
+      throw new BadCredentialsException(INVALID_REFRESH);
+    }
+    String replacementRaw = randomToken();
+    RefreshSession replacement = newSession(managedUser, replacementRaw);
+    Long rotated =
+        redisOperation(
+            () ->
+                redis.execute(
+                    ROTATE,
+                    List.of(
+                        key(hash),
+                        key(replacement.getTokenHash()),
+                        generationKey(managedUser.getId())),
+                    replacement.getId().toString(),
+                    managedUser.getId().toString(),
+                    replacement.getCreatedAt().toString(),
+                    replacement.getExpiresAt().toString(),
+                    Long.toString(expirationMillis),
+                    current.getExpiresAt().toString(),
+                    PREFIX + "family:",
+                    credential));
+    if (!Long.valueOf(1).equals(rotated)) throw new BadCredentialsException(INVALID_REFRESH);
+    return new Rotation(managedUser, replacementRaw);
   }
 
   public void revoke(String rawToken) {
@@ -117,11 +165,14 @@ public class RefreshSessionService {
               });
       return;
     }
-    RefreshSession session = readRedis(hash);
-    if (session != null && session.getRevokedAt() == null) {
-      session.setRevokedAt(Instant.now());
-      saveRedis(session);
-    }
+    redisOperation(
+        () ->
+            redis.execute(
+                REVOKE_SCRIPT,
+                List.of(key(hash)),
+                Instant.now().toString(),
+                PREFIX + "family:",
+                Long.toString(expirationMillis)));
   }
 
   public void revokeAllForUser(Long userId) {
@@ -129,16 +180,29 @@ public class RefreshSessionService {
       legacySessions.revokeActiveByUserId(userId, Instant.now());
       return;
     }
-    Set<String> hashes = redis.opsForSet().members(USER_PREFIX + userId);
-    if (hashes == null) return;
-    hashes.forEach(
-        hash -> {
-          RefreshSession session = readRedis(hash);
-          if (session != null && session.getRevokedAt() == null) {
-            session.setRevokedAt(Instant.now());
-            saveRedis(session);
-          }
-        });
+    redisOperation(
+        () ->
+            redis.execute(
+                REVOKE_ALL, List.of(generationKey(userId)), Long.toString(expirationMillis)));
+  }
+
+  private static String generationKey(Long userId) {
+    return PREFIX + "generation:" + userId;
+  }
+
+  private static <T> T redisOperation(Supplier<T> operation) {
+    try {
+      return operation.get();
+    } catch (DataAccessException exception) {
+      throw new AuthStoreUnavailableException(exception);
+    }
+  }
+
+  private static DefaultRedisScript<Long> script(String name) {
+    var script = new DefaultRedisScript<Long>();
+    script.setLocation(new ClassPathResource("redis/" + name));
+    script.setResultType(Long.class);
+    return script;
   }
 
   private Rotation rotateLegacy(String hash) {
@@ -163,28 +227,6 @@ public class RefreshSessionService {
     legacySessions.save(replacement);
     legacySessions.save(current);
     return new Rotation(current.getUser(), replacementRaw);
-  }
-
-  private void saveRedis(RefreshSession session) {
-    String hash = session.getTokenHash();
-    Map<String, String> values =
-        Map.of(
-            "id", session.getId().toString(),
-            "userId", session.getUser().getId().toString(),
-            "createdAt", session.getCreatedAt().toString(),
-            "expiresAt", session.getExpiresAt().toString(),
-            "revokedAt", session.getRevokedAt() == null ? "" : session.getRevokedAt().toString(),
-            "replacedBy",
-                session.getReplacedBySessionId() == null
-                    ? ""
-                    : session.getReplacedBySessionId().toString());
-    redis.opsForHash().putAll(key(hash), values);
-    redis.expire(
-        key(hash),
-        Duration.ofMillis(
-            Math.max(1, session.getExpiresAt().toEpochMilli() - System.currentTimeMillis())));
-    redis.opsForSet().add(USER_PREFIX + session.getUser().getId(), hash);
-    redis.expire(USER_PREFIX + session.getUser().getId(), Duration.ofMillis(expirationMillis));
   }
 
   private RefreshSession readRedis(String hash) {
@@ -215,8 +257,9 @@ public class RefreshSessionService {
     s.setId(UUID.randomUUID());
     s.setUser(user);
     s.setTokenHash(hash(rawToken));
-    s.setCreatedAt(Instant.now());
-    s.setExpiresAt(Instant.now().plus(Duration.ofMillis(expirationMillis)));
+    Instant now = Instant.now();
+    s.setCreatedAt(now);
+    s.setExpiresAt(now.plusMillis(expirationMillis));
     return s;
   }
 

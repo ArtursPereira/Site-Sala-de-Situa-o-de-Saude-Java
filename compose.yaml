@@ -17,8 +17,7 @@ services:
       ANALYTICS_DATASOURCE_USERNAME: ${ANALYTICS_DATASOURCE_USERNAME:-${DB_USER:-appuser}}
       ANALYTICS_DATASOURCE_PASSWORD: ${ANALYTICS_DATASOURCE_PASSWORD:-${DB_PASSWORD}}
       SPRING_JPA_HIBERNATE_DDL_AUTO: validate
-      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "true"
-      SPRING_FLYWAY_BASELINE_VERSION: "0"
+      SPRING_DATA_REDIS_URL: redis://redis:6379
       SPRING_PROFILES_ACTIVE: dev
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set}
       JWT_EXPIRATION: ${JWT_EXPIRATION:-3600000}
@@ -30,6 +29,8 @@ services:
       MAIL_SMTP_AUTH: ${MAIL_SMTP_AUTH:-false}
       MAIL_SMTP_STARTTLS: ${MAIL_SMTP_STARTTLS:-false}
     depends_on:
+      redis:
+        condition: service_healthy
       mailpit:
         condition: service_started
     healthcheck:
@@ -46,6 +47,17 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   mailpit:
     image: axllent/mailpit:v1.21
     container_name: nss-mailpit
@@ -53,3 +65,6 @@ services:
       - "1025:1025"
       - "8025:8025"
     restart: unless-stopped
+
+volumes:
+  redis_data:

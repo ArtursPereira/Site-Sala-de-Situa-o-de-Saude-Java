@@ -26,7 +26,8 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 @SpringBootTest
 class AdminUserEmailUniquenessPostgresIT {
   @Container
-  static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer("postgres:16-alpine");
+  static final PostgreSQLContainer POSTGRES =
+      new PostgreSQLContainer("postgres:16-alpine").withInitScript("nss-schema/app.sql");
 
   @Autowired AdminUserService service;
   @Autowired UserRepository users;
@@ -38,8 +39,6 @@ class AdminUserEmailUniquenessPostgresIT {
     registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
     registry.add("spring.datasource.username", POSTGRES::getUsername);
     registry.add("spring.datasource.password", POSTGRES::getPassword);
-    registry.add("spring.flyway.user", POSTGRES::getUsername);
-    registry.add("spring.flyway.password", POSTGRES::getPassword);
     registry.add("spring.docker.compose.enabled", () -> false);
     registry.add("analytics.datasource.url", POSTGRES::getJdbcUrl);
     registry.add("analytics.datasource.username", POSTGRES::getUsername);

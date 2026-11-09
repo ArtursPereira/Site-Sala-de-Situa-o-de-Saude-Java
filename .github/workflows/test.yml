@@ -27,8 +27,13 @@ jobs:
           distribution: temurin
           java-version: "21"
           cache: maven
+      - uses: actions/checkout@v4
+        with:
+          repository: Zadoque/NSS-database
+          ref: b3b49f6a3700d693d79eedf003eedb0517631c7f
+          path: nss-database-contract
       - name: Run tests and quality gates
-        run: ./mvnw -B verify
+        run: ./mvnw -B verify -Dnss.database.root=nss-database-contract
 
   mutation:
     runs-on: ubuntu-24.04

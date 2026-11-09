@@ -67,6 +67,25 @@ class JwtAuthenticationIntegrationIT {
   }
 
   @Test
+  void rejectsTokenIssuedBeforeAccountWasDisabledAndReactivated() throws Exception {
+    User user = persistUser("jwt-reactivated@nss.test", AccountType.USER, true);
+    String token = jwtService.generateToken(user);
+    user.setAtivo(false);
+    user = users.saveAndFlush(user);
+    user.setAtivo(true);
+    user = users.saveAndFlush(user);
+
+    mockMvc
+        .perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+        .andExpect(status().isUnauthorized());
+    mockMvc
+        .perform(
+            get("/api/v1/auth/me")
+                .header("Authorization", "Bearer " + jwtService.generateToken(user)))
+        .andExpect(status().isOk());
+  }
+
+  @Test
   void rejectsAValidJwtForADisabledUser() throws Exception {
     String email = "jwt-disabled@nss.test";
     User user = persistUser(email, AccountType.USER, false);

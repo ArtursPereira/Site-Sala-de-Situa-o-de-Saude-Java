@@ -35,10 +35,6 @@ public class CustomUserDetailsService implements UserDetailsService {
   private UserDetails toUserDetails(User user) {
     if (user.getPassword() == null)
       throw new UsernameNotFoundException("Conta ainda não configurada");
-    return org.springframework.security.core.userdetails.User.withUsername(user.getEmail())
-        .password(user.getPassword())
-        .roles(user.getAccountType().name())
-        .disabled(!user.isAtivo())
-        .build();
+    return new VersionedUserDetails(user);
   }
 }

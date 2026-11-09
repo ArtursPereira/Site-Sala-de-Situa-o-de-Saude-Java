@@ -173,7 +173,10 @@ class AuthControllerContractIT {
     org.mockito.Mockito.when(authenticationManager.authenticate(any())).thenReturn(authentication);
     org.mockito.Mockito.when(userService.entityByEmail("user@nss.test")).thenReturn(entity);
     org.mockito.Mockito.when(jwtService.generateToken(entity)).thenReturn("access-token");
-    org.mockito.Mockito.when(refreshSessions.issue(entity)).thenReturn("refresh-token");
+    org.mockito.Mockito.when(
+            refreshSessions.issue(
+                org.mockito.ArgumentMatchers.eq(entity), org.mockito.ArgumentMatchers.anyString()))
+        .thenReturn("refresh-token");
     org.mockito.Mockito.when(userService.getByEmail("user@nss.test")).thenReturn(response);
 
     mockMvc
@@ -192,7 +195,8 @@ class AuthControllerContractIT {
                     org.hamcrest.Matchers.containsString("nss_refresh=refresh-token")));
 
     verify(authenticationManager).authenticate(any());
-    verify(refreshSessions).issue(entity);
+    verify(refreshSessions)
+        .issue(org.mockito.ArgumentMatchers.eq(entity), org.mockito.ArgumentMatchers.anyString());
   }
 
   @Test
@@ -302,7 +306,10 @@ class AuthControllerContractIT {
     org.mockito.Mockito.when(authenticationManager.authenticate(any())).thenReturn(authentication);
     org.mockito.Mockito.when(jwtService.generateToken(entity)).thenReturn("admin-access");
     org.mockito.Mockito.when(userService.entityByEmail("admin@nss.test")).thenReturn(entity);
-    org.mockito.Mockito.when(refreshSessions.issue(entity)).thenReturn("admin-refresh");
+    org.mockito.Mockito.when(
+            refreshSessions.issue(
+                org.mockito.ArgumentMatchers.eq(entity), org.mockito.ArgumentMatchers.anyString()))
+        .thenReturn("admin-refresh");
     org.mockito.Mockito.when(userService.getByEmail("admin@nss.test"))
         .thenReturn(new UserResponse(11L, "Admin", "admin@nss.test", true));
 

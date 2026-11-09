@@ -1,136 +1,166 @@
 package com.example.nss.user.application;
 
+import com.example.nss.shared.redis.ClientAddress;
+import com.example.nss.shared.redis.DedicatedRedis;
+import com.example.nss.user.exception.AuthStoreUnavailableException;
 import com.example.nss.user.exception.RateLimitExceededException;
+import com.example.nss.user.security.EmailNormalizer;
+import io.micrometer.core.instrument.MeterRegistry;
+import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.time.Duration;
+import java.util.HexFormat;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.beans.factory.annotation.Autowired;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
-/** Distributed authentication rate limiter backed by Redis. */
 @Service
-public class AuthRateLimiter {
-  private static final String PREFIX = "nss:auth:rate-limit:";
-  private static final String LOGIN_OPERATION = "login";
-  private static final DefaultRedisScript<Long> RESERVE_SCRIPT =
-      new DefaultRedisScript<>(
-          "local started=redis.call('HGET',KEYS[1],'startedAt') "
-              + "local now=tonumber(ARGV[1]) "
-              + "local window=tonumber(ARGV[2]) "
-              + "if started and now >= tonumber(started)+window then redis.call('DEL',KEYS[1]); started=nil end "
-              + "local count=tonumber(redis.call('HGET',KEYS[1],'count') or '0') "
-              + "local maximum=tonumber(ARGV[3]) "
-              + "if count >= maximum then return 0 end "
-              + "if not started then redis.call('HSET',KEYS[1],'startedAt',now) end "
-              + "redis.call('HINCRBY',KEYS[1],'count',1) "
-              + "redis.call('EXPIRE',KEYS[1],window) "
-              + "return 1",
-          Long.class);
-  private static final DefaultRedisScript<Long> CHECK_SCRIPT =
-      new DefaultRedisScript<>(
-          "local started=redis.call('HGET',KEYS[1],'startedAt') "
-              + "if not started then return 1 end "
-              + "if tonumber(ARGV[1]) >= tonumber(started)+tonumber(ARGV[2]) then redis.call('DEL',KEYS[1]); return 1 end "
-              + "return tonumber(redis.call('HGET',KEYS[1],'count') or '0') < tonumber(ARGV[3]) and 1 or 0",
-          Long.class);
+public class AuthRateLimiter implements AutoCloseable {
+  private static final String ROUTE_TAG = "route";
+  private static final String PREFIX = "nss:auth:limit:v2:";
+  private static final long MINUTE_MS = 60_000;
+  private static final DefaultRedisScript<Long> ACCOUNT = script("auth-fixed-window.lua");
+  private static final DefaultRedisScript<Long> BUCKET = script("auth-token-bucket.lua");
 
+  private final DedicatedRedis connection;
   private final StringRedisTemplate redis;
+  private final MeterRegistry metrics;
+  private final byte[] keySecret;
   private final int loginMaximum;
   private final int resetMaximum;
-  private final Duration window;
-  private final Map<String, Attempt> compatibilityAttempts;
-  private final boolean useRedis;
+  private final long windowMillis;
+  private final int globalPerMinute;
+  private final int ipPerMinute;
 
-  @Autowired
   public AuthRateLimiter(
-      StringRedisTemplate redis,
+      @Value("${api.auth.rate-limit.redis-url}") String url,
+      @Value("${api.auth.rate-limit.key-secret}") String secret,
       @Value("${api.auth.rate-limit.login-maximum:5}") int loginMaximum,
       @Value("${api.auth.rate-limit.reset-maximum:3}") int resetMaximum,
       @Value("${api.auth.rate-limit.window-seconds:900}") long windowSeconds,
-      @Value("${api.auth.rate-limit.backend:redis}") String backend) {
-    this.redis = redis;
+      @Value("${api.auth.rate-limit.global-per-minute:6000}") int globalPerMinute,
+      @Value("${api.auth.rate-limit.ip-per-minute:60}") int ipPerMinute,
+      @Value("${api.auth.rate-limit.redis-timeout-ms:200}") long timeoutMillis,
+      MeterRegistry metrics) {
+    if (loginMaximum < 1
+        || resetMaximum < 1
+        || windowSeconds < 1
+        || globalPerMinute < 1
+        || ipPerMinute < 1
+        || timeoutMillis < 1
+        || secret.isBlank()) {
+      throw new IllegalArgumentException("Parâmetros inválidos para o rate limiter");
+    }
+    this.connection = new DedicatedRedis(url, Duration.ofMillis(timeoutMillis));
+    this.redis = connection.template();
+    this.keySecret = secret.getBytes(StandardCharsets.UTF_8);
     this.loginMaximum = loginMaximum;
     this.resetMaximum = resetMaximum;
-    this.window = Duration.ofSeconds(windowSeconds);
-    this.useRedis = !"memory".equalsIgnoreCase(backend);
-    this.compatibilityAttempts = new ConcurrentHashMap<>();
+    this.windowMillis = Math.multiplyExact(windowSeconds, 1000);
+    this.globalPerMinute = globalPerMinute;
+    this.ipPerMinute = ipPerMinute;
+    this.metrics = metrics;
   }
 
-  /** Compatibility constructor for isolated unit tests; application wiring always uses Redis. */
-  public AuthRateLimiter(int loginMaximum, int resetMaximum, long windowSeconds) {
-    this.redis = null;
-    this.loginMaximum = loginMaximum;
-    this.resetMaximum = resetMaximum;
-    this.window = Duration.ofSeconds(windowSeconds);
-    this.compatibilityAttempts = new ConcurrentHashMap<>();
-    this.useRedis = false;
+  public void registerLoginAttempt(String email) {
+    admit("login", email, loginMaximum);
   }
 
-  public synchronized void registerLoginAttempt(String email) {
-    reserve(LOGIN_OPERATION, email, loginMaximum);
+  public void registerPasswordResetRequest(String email) {
+    admit("password-reset", email, resetMaximum);
   }
 
-  public synchronized void checkLogin(String email) {
-    check(LOGIN_OPERATION, email, loginMaximum);
+  public void registerRefreshAttempt() {
+    admit("refresh", null, 0);
   }
 
-  public void loginSucceeded(String email) {
-    if (useRedis) redis.delete(key(LOGIN_OPERATION, email));
-    else compatibilityAttempts.remove(key(LOGIN_OPERATION, email));
+  public void registerPasswordResetCompletion() {
+    admit("password-reset-complete", null, 0);
   }
 
-  public synchronized void registerPasswordResetRequest(String email) {
-    reserve("password-reset", email, resetMaximum);
+  public void registerFirstAccessAttempt() {
+    admit("first-access", null, 0);
   }
 
-  private void check(String operation, String email, int maximum) {
-    if (!useRedis) {
-      Attempt attempt = compatibilityAttempts.get(key(operation, email));
-      if (attempt == null || attempt.startedAt.plus(window).isBefore(java.time.Instant.now())) {
-        compatibilityAttempts.remove(key(operation, email));
-        return;
+  private void admit(String route, String account, int maximum) {
+    long started = System.nanoTime();
+    try {
+      check(
+          BUCKET,
+          PREFIX + "ip:" + route + ":" + digest("ip:" + ClientAddress.current()),
+          ipPerMinute,
+          MINUTE_MS,
+          route,
+          "ip");
+      check(BUCKET, PREFIX + "global", globalPerMinute, MINUTE_MS, route, "global");
+      if (account != null) {
+        check(
+            ACCOUNT,
+            PREFIX
+                + "account:"
+                + route
+                + ":"
+                + digest("account:" + EmailNormalizer.normalize(account)),
+            maximum,
+            windowMillis,
+            route,
+            "account");
       }
-      if (attempt.count >= maximum) throw new RateLimitExceededException();
-      return;
+      metrics.counter("nss.auth.admission", ROUTE_TAG, route, "result", "accepted").increment();
+    } catch (DataAccessException exception) {
+      metrics
+          .counter("nss.auth.admission", ROUTE_TAG, route, "result", "redis_unavailable")
+          .increment();
+      throw new AuthStoreUnavailableException(exception);
+    } finally {
+      metrics
+          .timer("nss.auth.admission.duration", ROUTE_TAG, route)
+          .record(Duration.ofNanos(System.nanoTime() - started));
     }
-    Long allowed =
-        redis.execute(
-            CHECK_SCRIPT,
-            List.of(key(operation, email)),
-            Long.toString(System.currentTimeMillis() / 1000),
-            Long.toString(window.toSeconds()),
-            Integer.toString(maximum));
-    if (!Long.valueOf(1L).equals(allowed)) throw new RateLimitExceededException();
   }
 
-  private void reserve(String operation, String email, int maximum) {
-    if (!useRedis) {
-      String key = key(operation, email);
-      Attempt attempt = compatibilityAttempts.get(key);
-      if (attempt == null || !attempt.startedAt.plus(window).isAfter(java.time.Instant.now()))
-        attempt = new Attempt(0, java.time.Instant.now());
-      if (attempt.count >= maximum) throw new RateLimitExceededException();
-      compatibilityAttempts.put(key, new Attempt(attempt.count + 1, attempt.startedAt));
-      return;
+  private void check(
+      DefaultRedisScript<Long> rule,
+      String key,
+      int max,
+      long window,
+      String route,
+      String bucket) {
+    Long retryMs = redis.execute(rule, List.of(key), Integer.toString(max), Long.toString(window));
+    if (retryMs == null) throw new AuthStoreUnavailableException(null);
+    if (retryMs > 0) {
+      metrics
+          .counter("nss.auth.admission", ROUTE_TAG, route, "result", bucket + "_limited")
+          .increment();
+      throw new RateLimitExceededException((retryMs + 999) / 1000);
     }
-    Long allowed =
-        redis.execute(
-            RESERVE_SCRIPT,
-            List.of(key(operation, email)),
-            Long.toString(System.currentTimeMillis() / 1000),
-            Long.toString(window.toSeconds()),
-            Integer.toString(maximum));
-    if (!Long.valueOf(1L).equals(allowed)) throw new RateLimitExceededException();
   }
 
-  private String key(String operation, String email) {
-    return PREFIX + operation + ":" + email.trim().toLowerCase(Locale.ROOT);
+  private String digest(String value) {
+    try {
+      Mac hmac = Mac.getInstance("HmacSHA256");
+      hmac.init(new SecretKeySpec(keySecret, "HmacSHA256"));
+      return HexFormat.of().formatHex(hmac.doFinal(value.getBytes(StandardCharsets.UTF_8)));
+    } catch (GeneralSecurityException exception) {
+      throw new IllegalStateException("HMAC de autenticação indisponível", exception);
+    }
   }
 
-  private record Attempt(int count, java.time.Instant startedAt) {}
+  private static DefaultRedisScript<Long> script(String name) {
+    var script = new DefaultRedisScript<Long>();
+    script.setLocation(new ClassPathResource("redis/" + name));
+    script.setResultType(Long.class);
+    return script;
+  }
+
+  @Override
+  public void close() {
+    connection.close();
+  }
 }

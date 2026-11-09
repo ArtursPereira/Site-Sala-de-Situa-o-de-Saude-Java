@@ -39,6 +39,10 @@ public class User {
   @Column(name = "updated_at", nullable = false)
   private java.time.Instant updatedAt = java.time.Instant.now();
 
+  @Version
+  @Column(name = "account_version", nullable = false)
+  private Long accountVersion;
+
   @Column(name = "password_created_at")
   private java.time.Instant passwordCreatedAt;
 

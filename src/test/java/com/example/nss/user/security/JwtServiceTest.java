@@ -45,6 +45,7 @@ class JwtServiceTest {
 
   private User entity(long id) {
     User user = new User();
+    user.setAccountVersion(0L);
     user.setId(id);
     user.setEmail("user@nss.test");
     user.setAtivo(true);

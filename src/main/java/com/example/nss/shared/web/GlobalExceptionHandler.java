@@ -1,11 +1,13 @@
 package com.example.nss.shared.web;
 
 import com.example.nss.analytics.exception.InvalidFilterException;
+import com.example.nss.user.exception.AuthStoreUnavailableException;
 import com.example.nss.user.exception.RateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationServiceException;
@@ -45,11 +47,27 @@ public class GlobalExceptionHandler {
   }
 
   @ExceptionHandler(RateLimitExceededException.class)
-  public ResponseEntity<ErrorResponse> handleRateLimit(HttpServletRequest request) {
+  public ResponseEntity<ErrorResponse> handleRateLimit(
+      RateLimitExceededException exception, HttpServletRequest request) {
+    ErrorResponse body =
+        error(
+                HttpStatus.TOO_MANY_REQUESTS,
+                "RATE_LIMITED",
+                "Muitas tentativas. Aguarde antes de tentar novamente.",
+                request)
+            .getBody();
+    return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+        .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+        .header(HttpHeaders.CACHE_CONTROL, "no-store")
+        .body(body);
+  }
+
+  @ExceptionHandler(AuthStoreUnavailableException.class)
+  public ResponseEntity<ErrorResponse> handleAuthUnavailable(HttpServletRequest request) {
     return error(
-        HttpStatus.TOO_MANY_REQUESTS,
-        "RATE_LIMITED",
-        "Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.",
+        HttpStatus.SERVICE_UNAVAILABLE,
+        "AUTH_UNAVAILABLE",
+        "Autenticação temporariamente indisponível",
         request);
   }
 
@@ -73,6 +91,12 @@ public class GlobalExceptionHandler {
   @ExceptionHandler({NoHandlerFoundException.class, NoResourceFoundException.class})
   public ResponseEntity<ErrorResponse> handleNotFound(Exception e, HttpServletRequest r) {
     return error(HttpStatus.NOT_FOUND, "NOT_FOUND", "Recurso não encontrado", r);
+  }
+
+  @ExceptionHandler(org.springframework.dao.OptimisticLockingFailureException.class)
+  public ResponseEntity<ErrorResponse> handleConcurrentUpdate(Exception e, HttpServletRequest r) {
+    return error(
+        HttpStatus.CONFLICT, "CONCURRENT_UPDATE", "A conta foi alterada. Tente novamente.", r);
   }
 
   @ExceptionHandler(Exception.class)

@@ -290,7 +290,7 @@ class FirstAccessServiceTest {
     assertEquals("COMPLETED", token.getStatus());
     org.junit.jupiter.api.Assertions.assertNotNull(token.getCompletedAt());
     org.junit.jupiter.api.Assertions.assertNotNull(token.getPasswordCreatedAt());
-    org.mockito.Mockito.verify(users).save(user);
+    org.mockito.Mockito.verify(users).saveAndFlush(user);
     org.mockito.Mockito.verify(tokens).save(token);
     org.mockito.Mockito.verify(refreshSessions).revokeAllForUser(user.getId());
   }

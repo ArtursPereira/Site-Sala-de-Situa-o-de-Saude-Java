@@ -26,6 +26,7 @@
 		<pitest.version>1.19.4</pitest.version>
 		<pitest.junit5.version>1.2.3</pitest.junit5.version>
 		<testcontainers.version>2.0.5</testcontainers.version>
+		<nss.database.root>../NSS-database</nss.database.root>
 
 	</properties>
 
@@ -40,10 +41,6 @@
 			<artifactId>spring-boot-starter-data-redis</artifactId>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-flyway</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -80,10 +77,6 @@
 			<scope>runtime</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-database-postgresql</artifactId>
-		</dependency>
 
 		<dependency>
 			<groupId>org.mapstruct</groupId>
@@ -104,11 +97,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-flyway-test</artifactId>
-			<scope>test</scope>
-		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -203,6 +191,16 @@
 	</profiles>
 
 	<build>
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>${nss.database.root}/migrations/0001</directory>
+                <targetPath>nss-schema</targetPath>
+                <includes><include>app.sql</include></includes>
+            </testResource>
+        </testResources>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
