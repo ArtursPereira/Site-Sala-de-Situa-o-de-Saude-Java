@@ -30,6 +30,20 @@ public class UserService {
         .orElseThrow(() -> new IllegalArgumentException("Usuário não encontrado"));
   }
 
+  @Transactional(readOnly = true)
+  public User entityById(long id) {
+    return repository
+        .findById(id)
+        .orElseThrow(
+            () ->
+                new org.springframework.security.authentication.BadCredentialsException(
+                    "Conta inválida"));
+  }
+
+  public UserResponse response(User user) {
+    return mapper.toResponse(user);
+  }
+
   public void requestPasswordReset(String email) {
     repository
         .findByEmailIgnoreCase(EmailNormalizer.normalize(email))

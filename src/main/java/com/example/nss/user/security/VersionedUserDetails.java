@@ -8,6 +8,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 public final class VersionedUserDetails extends org.springframework.security.core.userdetails.User {
   private static final long serialVersionUID = 1L;
   private final long revisionValue;
+  private final long userId;
 
   public VersionedUserDetails(User user) {
     super(
@@ -19,6 +20,7 @@ public final class VersionedUserDetails extends org.springframework.security.cor
         true,
         List.of(new SimpleGrantedAuthority("ROLE_" + user.getAccountType().name())));
     revisionValue = revision(user);
+    userId = user.getId();
   }
 
   public static long revision(User user) {
@@ -26,6 +28,10 @@ public final class VersionedUserDetails extends org.springframework.security.cor
       throw new IllegalStateException("Conta ainda não foi persistida");
     }
     return user.getAccountVersion();
+  }
+
+  public long accountId() {
+    return userId;
   }
 
   public long accountRevision() {

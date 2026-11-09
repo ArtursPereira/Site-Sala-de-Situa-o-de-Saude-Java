@@ -22,7 +22,6 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -35,7 +34,6 @@ public class RefreshSessionService {
   private static final String INVALID_REFRESH = "Refresh inválido";
   private final StringRedisTemplate redis;
   private final UserRepository users;
-  private final PasswordEncoder passwordEncoder;
   private final RefreshSessionRepository legacySessions;
   private final SecureRandom random = new SecureRandom();
 
@@ -43,11 +41,9 @@ public class RefreshSessionService {
   private long expirationMillis;
 
   @Autowired
-  public RefreshSessionService(
-      StringRedisTemplate redis, UserRepository users, PasswordEncoder passwordEncoder) {
+  public RefreshSessionService(StringRedisTemplate redis, UserRepository users) {
     this.redis = redis;
     this.users = users;
-    this.passwordEncoder = passwordEncoder;
     this.legacySessions = null;
   }
 
@@ -55,16 +51,7 @@ public class RefreshSessionService {
   public RefreshSessionService(RefreshSessionRepository legacySessions, UserRepository users) {
     this.redis = null;
     this.users = users;
-    this.passwordEncoder = null;
     this.legacySessions = legacySessions;
-  }
-
-  public String issue(User user, String authenticatedPassword) {
-    if (user.getPassword() == null
-        || !passwordEncoder.matches(authenticatedPassword, user.getPassword())) {
-      throw new BadCredentialsException(INVALID_REFRESH);
-    }
-    return issue(user);
   }
 
   public String issue(User user) {
@@ -78,7 +65,9 @@ public class RefreshSessionService {
             .orElseThrow(() -> new BadCredentialsException("Conta não encontrada"));
     if (!managedUser.isAtivo()) throw new BadCredentialsException("Conta desativada");
     if (legacySessions == null
-        && !java.util.Objects.equals(user.getPassword(), managedUser.getPassword())) {
+        && (!java.util.Objects.equals(user.getPassword(), managedUser.getPassword())
+            || !java.util.Objects.equals(user.getAccountVersion(), managedUser.getAccountVersion())
+            || managedUser.getPassword() == null)) {
       throw new BadCredentialsException(INVALID_REFRESH);
     }
     String raw = randomToken();
@@ -99,7 +88,7 @@ public class RefreshSessionService {
                       Long.toString(expirationMillis),
                       generation == null ? "0" : generation,
                       session.getTokenHash(),
-                      hash(managedUser.getPassword())));
+                      hash(managedUser.getPassword() + ":" + managedUser.getAccountVersion())));
       if (!Long.valueOf(1).equals(issued)) throw new BadCredentialsException(INVALID_REFRESH);
     }
     return raw;
@@ -124,7 +113,8 @@ public class RefreshSessionService {
         redisOperation(() -> (String) redis.opsForHash().get(key(hash), "credential"));
     if (credential == null
         || managedUser.getPassword() == null
-        || !credential.equals(hash(managedUser.getPassword()))) {
+        || !credential.equals(
+            hash(managedUser.getPassword() + ":" + managedUser.getAccountVersion()))) {
       throw new BadCredentialsException(INVALID_REFRESH);
     }
     String replacementRaw = randomToken();

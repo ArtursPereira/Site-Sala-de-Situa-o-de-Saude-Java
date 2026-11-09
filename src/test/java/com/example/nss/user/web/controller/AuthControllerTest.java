@@ -51,22 +51,20 @@ class AuthControllerTest {
 
   @Test
   void normalizesEmailAndReusesAuthenticatedPrincipal() {
-    UserDetails principal =
-        org.springframework.security.core.userdetails.User.withUsername("ana@example.com")
-            .password("ignored")
-            .roles("USER")
-            .build();
     User user = new User();
     user.setId(7L);
     user.setEmail("ana@example.com");
+    user.setPassword("encoded");
+    user.setAccountVersion(0L);
+    UserDetails principal = new com.example.nss.user.security.VersionedUserDetails(user);
     UserResponse userResponse = new UserResponse(7L, "Ana", "ana@example.com", true);
 
     when(authentication.getPrincipal()).thenReturn(principal);
     when(authenticationManager.authenticate(any())).thenReturn(authentication);
-    when(userService.entityByEmail("ana@example.com")).thenReturn(user);
+    when(userService.entityById(7L)).thenReturn(user);
     when(jwtService.generateToken(user)).thenReturn("access-token");
-    when(refreshSessions.issue(user, "secret")).thenReturn("refresh-token");
-    when(userService.getByEmail("ana@example.com")).thenReturn(userResponse);
+    when(refreshSessions.issue(user)).thenReturn("refresh-token");
+    when(userService.response(user)).thenReturn(userResponse);
     ReflectionTestUtils.setField(controller, "refreshCookieName", "nss_refresh");
     ReflectionTestUtils.setField(controller, "refreshExpiration", 604_800_000L);
 
@@ -78,6 +76,29 @@ class AuthControllerTest {
     assertEquals("ana@example.com", captor.getValue().getPrincipal());
     verify(jwtService).generateToken(user);
     verify(userDetailsService, never()).loadUserByUsername(any());
+  }
+
+  @Test
+  void rejectsLoginWhenAccountChangedAfterAuthentication() {
+    User authenticated = new User();
+    authenticated.setId(7L);
+    authenticated.setEmail("ana@example.com");
+    authenticated.setPassword("encoded");
+    authenticated.setAccountVersion(1L);
+    User current = new User();
+    current.setId(7L);
+    current.setEmail("ana@example.com");
+    current.setPassword("encoded");
+    current.setAccountVersion(2L);
+    when(authentication.getPrincipal())
+        .thenReturn(new com.example.nss.user.security.VersionedUserDetails(authenticated));
+    when(authenticationManager.authenticate(any())).thenReturn(authentication);
+    when(userService.entityById(7L)).thenReturn(current);
+
+    assertThrows(
+        BadCredentialsException.class,
+        () -> controller.login(new LoginRequest("ana@example.com", "secret"), response));
+    verify(refreshSessions, never()).issue(any());
   }
 
   @Test
@@ -102,7 +123,7 @@ class AuthControllerTest {
         () -> controller.login(new LoginRequest("user@example.com", "secret"), response));
 
     verify(userService, never()).entityByEmail(any());
-    verify(refreshSessions, never()).issue(any(), any());
+    verify(refreshSessions, never()).issue(any());
   }
 
   @Test
@@ -110,17 +131,13 @@ class AuthControllerTest {
     User user = new User();
     user.setId(7L);
     user.setEmail("ana@example.com");
-    UserDetails principal =
-        org.springframework.security.core.userdetails.User.withUsername("ana@example.com")
-            .password("ignored")
-            .roles("USER")
-            .build();
+    user.setPassword("encoded");
+    user.setAccountVersion(0L);
     when(request.getCookies()).thenReturn(new Cookie[] {new Cookie("nss_refresh", "old-token")});
     when(refreshSessions.rotateWithToken("old-token"))
         .thenReturn(new RefreshSessionService.Rotation(user, "new-token"));
-    when(userDetailsService.loadUserByUsername("ana@example.com")).thenReturn(principal);
     when(jwtService.generateToken(user)).thenReturn("new-access");
-    when(userService.getByEmail("ana@example.com"))
+    when(userService.response(user))
         .thenReturn(new UserResponse(null, "Ana", "ana@example.com", true));
     ReflectionTestUtils.setField(controller, "refreshCookieName", "nss_refresh");
     ReflectionTestUtils.setField(controller, "refreshExpiration", 604_800_000L);
@@ -128,7 +145,7 @@ class AuthControllerTest {
     controller.refresh(request, response);
 
     verify(refreshSessions).rotateWithToken("old-token");
-    verify(userDetailsService).loadUserByUsername("ana@example.com");
+    verify(userService).response(user);
     verify(jwtService).generateToken(user);
     verify(response).addHeader(eq("Set-Cookie"), any());
   }

@@ -25,22 +25,44 @@ class RefreshSessionRedisIT {
       user.setId(983412L);
       user.setPassword(encoder.encode("old-password"));
       when(users.findById(user.getId())).thenReturn(Optional.of(user));
-      var service = new RefreshSessionService(connection.template(), users, encoder);
+      var service = new RefreshSessionService(connection.template(), users);
       ReflectionTestUtils.setField(service, "expirationMillis", 120_000L);
-      String old = service.issue(user, "old-password");
+      String old = service.issue(user);
       String next = service.rotateWithToken(old).rawToken();
       service.revoke(old);
       assertThrows(BadCredentialsException.class, () -> service.rotateWithToken(next));
-      String current = service.issue(user, "old-password");
+      String current = service.issue(user);
       user.setPassword(encoder.encode("new-password"));
       assertThrows(BadCredentialsException.class, () -> service.rotateWithToken(current));
-      assertThrows(BadCredentialsException.class, () -> service.issue(user, "old-password"));
-      String token = service.issue(user, "new-password");
+      String token = service.issue(user);
       try (var executor = Executors.newFixedThreadPool(2)) {
         var first = executor.submit(() -> rotate(service, token));
         var second = executor.submit(() -> rotate(service, token));
         assertNotEquals(first.get(), second.get());
       }
+    }
+  }
+
+  @Test
+  void rejectsChangedAccountVersionWithoutChangingPassword() {
+    String url = System.getenv().getOrDefault("SPRING_DATA_REDIS_URL", "redis://localhost:6379");
+    try (var connection = new DedicatedRedis(url, Duration.ofSeconds(2))) {
+      var users = mock(UserRepository.class);
+      var oldAccount = new User();
+      oldAccount.setId(983413L);
+      oldAccount.setPassword("same-hash");
+      oldAccount.setAccountVersion(1L);
+      var currentAccount = new User();
+      currentAccount.setId(983413L);
+      currentAccount.setPassword("same-hash");
+      currentAccount.setAccountVersion(2L);
+      var service = new RefreshSessionService(connection.template(), users);
+      ReflectionTestUtils.setField(service, "expirationMillis", 120_000L);
+      when(users.findById(983413L)).thenReturn(Optional.of(oldAccount));
+      String token = service.issue(oldAccount);
+      when(users.findById(983413L)).thenReturn(Optional.of(currentAccount));
+      assertThrows(BadCredentialsException.class, () -> service.issue(oldAccount));
+      assertThrows(BadCredentialsException.class, () -> service.rotateWithToken(token));
     }
   }
 

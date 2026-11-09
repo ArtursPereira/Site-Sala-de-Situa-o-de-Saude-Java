@@ -104,17 +104,12 @@ class AuthControllerContractIT {
     User user = new User();
     user.setId(1L);
     user.setEmail("user@nss.test");
-    UserDetails principal =
-        org.springframework.security.core.userdetails.User.withUsername("user@nss.test")
-            .password("ignored")
-            .roles("USER")
-            .build();
+    user.setPassword("encoded");
+    user.setAccountVersion(0L);
     org.mockito.Mockito.when(refreshSessions.rotateWithToken("refresh-token"))
         .thenReturn(new RefreshSessionService.Rotation(user, "replacement-token"));
-    org.mockito.Mockito.when(userDetailsService.loadUserByUsername("user@nss.test"))
-        .thenReturn(principal);
     org.mockito.Mockito.when(jwtService.generateToken(user)).thenReturn("access-token");
-    org.mockito.Mockito.when(userService.getByEmail("user@nss.test"))
+    org.mockito.Mockito.when(userService.response(user))
         .thenReturn(new UserResponse(1L, "User", "user@nss.test", true));
 
     mockMvc
@@ -159,25 +154,21 @@ class AuthControllerContractIT {
 
   @Test
   void loginReturnsAccessDataAndSetsTheRefreshCookie() throws Exception {
-    UserDetails principal =
-        org.springframework.security.core.userdetails.User.withUsername("user@nss.test")
-            .password("ignored")
-            .roles("USER")
-            .build();
     Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
     User entity = new User();
     entity.setId(7L);
     entity.setEmail("user@nss.test");
+    entity.setPassword("encoded");
+    entity.setAccountVersion(0L);
+    entity.setAccountType(com.example.nss.user.domain.AccountType.USER);
+    UserDetails principal = new com.example.nss.user.security.VersionedUserDetails(entity);
     UserResponse response = new UserResponse(7L, "User", "user@nss.test", true);
     org.mockito.Mockito.when(authentication.getPrincipal()).thenReturn(principal);
     org.mockito.Mockito.when(authenticationManager.authenticate(any())).thenReturn(authentication);
-    org.mockito.Mockito.when(userService.entityByEmail("user@nss.test")).thenReturn(entity);
+    org.mockito.Mockito.when(userService.entityById(7L)).thenReturn(entity);
     org.mockito.Mockito.when(jwtService.generateToken(entity)).thenReturn("access-token");
-    org.mockito.Mockito.when(
-            refreshSessions.issue(
-                org.mockito.ArgumentMatchers.eq(entity), org.mockito.ArgumentMatchers.anyString()))
-        .thenReturn("refresh-token");
-    org.mockito.Mockito.when(userService.getByEmail("user@nss.test")).thenReturn(response);
+    org.mockito.Mockito.when(refreshSessions.issue(entity)).thenReturn("refresh-token");
+    org.mockito.Mockito.when(userService.response(entity)).thenReturn(response);
 
     mockMvc
         .perform(
@@ -195,8 +186,7 @@ class AuthControllerContractIT {
                     org.hamcrest.Matchers.containsString("nss_refresh=refresh-token")));
 
     verify(authenticationManager).authenticate(any());
-    verify(refreshSessions)
-        .issue(org.mockito.ArgumentMatchers.eq(entity), org.mockito.ArgumentMatchers.anyString());
+    verify(refreshSessions).issue(entity);
   }
 
   @Test
@@ -204,17 +194,12 @@ class AuthControllerContractIT {
     User user = new User();
     user.setId(7L);
     user.setEmail("user@nss.test");
-    UserDetails principal =
-        org.springframework.security.core.userdetails.User.withUsername("user@nss.test")
-            .password("ignored")
-            .roles("USER")
-            .build();
+    user.setPassword("encoded");
+    user.setAccountVersion(0L);
     org.mockito.Mockito.when(refreshSessions.rotateWithToken("old-token"))
         .thenReturn(new RefreshSessionService.Rotation(user, "new-token"));
-    org.mockito.Mockito.when(userDetailsService.loadUserByUsername("user@nss.test"))
-        .thenReturn(principal);
     org.mockito.Mockito.when(jwtService.generateToken(user)).thenReturn("new-access");
-    org.mockito.Mockito.when(userService.getByEmail("user@nss.test"))
+    org.mockito.Mockito.when(userService.response(user))
         .thenReturn(new UserResponse(null, "User", "user@nss.test", true));
 
     mockMvc
@@ -232,7 +217,7 @@ class AuthControllerContractIT {
                     "Set-Cookie", org.hamcrest.Matchers.containsString("nss_refresh=new-token")));
 
     verify(refreshSessions).rotateWithToken("old-token");
-    verify(userDetailsService).loadUserByUsername("user@nss.test");
+    verify(userService).response(user);
   }
 
   @Test
@@ -293,24 +278,20 @@ class AuthControllerContractIT {
 
   @Test
   void adminLoginReturnsAdministrativePermission() throws Exception {
-    UserDetails principal =
-        org.springframework.security.core.userdetails.User.withUsername("admin@nss.test")
-            .password("ignored")
-            .roles("ADMIN")
-            .build();
     Authentication authentication = org.mockito.Mockito.mock(Authentication.class);
     User entity = new User();
     entity.setId(11L);
     entity.setEmail("admin@nss.test");
+    entity.setPassword("encoded");
+    entity.setAccountVersion(0L);
+    entity.setAccountType(com.example.nss.user.domain.AccountType.ADMIN);
+    UserDetails principal = new com.example.nss.user.security.VersionedUserDetails(entity);
     org.mockito.Mockito.when(authentication.getPrincipal()).thenReturn(principal);
     org.mockito.Mockito.when(authenticationManager.authenticate(any())).thenReturn(authentication);
     org.mockito.Mockito.when(jwtService.generateToken(entity)).thenReturn("admin-access");
-    org.mockito.Mockito.when(userService.entityByEmail("admin@nss.test")).thenReturn(entity);
-    org.mockito.Mockito.when(
-            refreshSessions.issue(
-                org.mockito.ArgumentMatchers.eq(entity), org.mockito.ArgumentMatchers.anyString()))
-        .thenReturn("admin-refresh");
-    org.mockito.Mockito.when(userService.getByEmail("admin@nss.test"))
+    org.mockito.Mockito.when(userService.entityById(11L)).thenReturn(entity);
+    org.mockito.Mockito.when(refreshSessions.issue(entity)).thenReturn("admin-refresh");
+    org.mockito.Mockito.when(userService.response(entity))
         .thenReturn(new UserResponse(11L, "Admin", "admin@nss.test", true));
 
     mockMvc
