@@ -63,7 +63,7 @@ class FirstAccessIntegrationIT {
   void completesPasswordResetAndRevokesThePersistedSessions() throws Exception {
     User user = persistUser("password-reset-http@nss.test", true);
     user.setPassword("old-password");
-    users.saveAndFlush(user);
+    user = users.saveAndFlush(user);
     String refreshToken = refreshSessions.issue(user);
     createToken(user, "password-reset-http-token", "PASSWORD_RESET");
 
