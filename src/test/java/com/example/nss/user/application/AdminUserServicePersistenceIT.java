@@ -51,6 +51,24 @@ class AdminUserServicePersistenceIT {
   }
 
   @Test
+  void invitesAnEditorAndCreatesItsFirstAccessInvitation() {
+    String email = "editor@nss.test";
+
+    var invited = service.invite(new AccountInvitationRequest(email, AccountType.EDITOR));
+
+    User persisted = users.findByEmail(email).orElseThrow();
+    FirstAccessToken invitation = tokens.findByUserId(persisted.getId()).orElseThrow();
+    assertEquals(AccountType.EDITOR, invited.accountType());
+    assertEquals(AccountType.EDITOR, persisted.getAccountType());
+    assertEquals("FIRST_ACCESS", invitation.getPurpose());
+    assertEquals("PENDING", invitation.getStatus());
+    assertEquals(true, invited.firstAccessPending());
+    verify(mail)
+        .sendTextAfterCommit(
+            eq(email), eq("Convite de primeiro acesso ao NSS"), org.mockito.ArgumentMatchers.any());
+  }
+
+  @Test
   void resetsPasswordByClearingCredentialsAndPersistingAResetInvitation() {
     String email = "persistence-reset@nss.test";
     service.invite(new AccountInvitationRequest(email, AccountType.USER));

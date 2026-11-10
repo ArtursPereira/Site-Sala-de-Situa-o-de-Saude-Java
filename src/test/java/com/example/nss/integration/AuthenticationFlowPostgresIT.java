@@ -21,6 +21,8 @@ import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
@@ -40,6 +42,7 @@ class AuthenticationFlowPostgresIT {
   @Autowired UserRepository users;
   @Autowired PasswordEncoder passwordEncoder;
   @Autowired JwtService jwtService;
+  @Autowired PlatformTransactionManager transactionManager;
 
   @MockitoBean com.example.nss.shared.notification.MailService mail;
 
@@ -102,6 +105,61 @@ class AuthenticationFlowPostgresIT {
         .andExpect(jsonPath("$.email").value("admin-login@nss.test"))
         .andExpect(jsonPath("$.name").value("Admin Login"))
         .andExpect(jsonPath("$.permissions[0]").value("USER_MANAGEMENT"));
+  }
+
+  @Test
+  void persistsAndReloadsAnEditorUsingTheNssPostgresSchema() {
+    String email = "persisted-editor@nss.test";
+    TransactionTemplate transactions = new TransactionTemplate(transactionManager);
+
+    Long id =
+        transactions.execute(
+            status -> {
+              User saved =
+                  persistUser(email, "Persisted Editor", AccountType.EDITOR, true, "Password123!");
+              users.flush();
+              return saved.getId();
+            });
+
+    AccountType reloadedType =
+        transactions.execute(
+            status ->
+                users
+                    .findById(java.util.Objects.requireNonNull(id))
+                    .orElseThrow()
+                    .getAccountType());
+
+    org.junit.jupiter.api.Assertions.assertEquals(AccountType.EDITOR, reloadedType);
+  }
+
+  @Test
+  void logsInAnEditorUsesItsJwtAndDeniesAdministrativeAccess() throws Exception {
+    String email = "editor-login@nss.test";
+    persistUser(email, "Editor Login", AccountType.EDITOR, true, "Password123!");
+
+    MvcResult login =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/login")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"email\":\"" + email + "\",\"password\":\"Password123!\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user.email").value(email))
+            .andExpect(jsonPath("$.permissions").isEmpty())
+            .andReturn();
+
+    String token =
+        com.jayway.jsonpath.JsonPath.read(
+            login.getResponse().getContentAsString(), "$.accessToken");
+
+    mockMvc
+        .perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.email").value(email))
+        .andExpect(jsonPath("$.permissions").isEmpty());
+    mockMvc
+        .perform(get("/api/v1/admin/users").header("Authorization", "Bearer " + token))
+        .andExpect(status().isForbidden());
   }
 
   @Test

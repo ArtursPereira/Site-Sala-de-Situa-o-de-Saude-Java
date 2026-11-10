@@ -80,6 +80,23 @@ class AdminUserServiceTest {
   }
 
   @Test
+  void invitesAnEditorAndPreservesItsAccountType() {
+    AccountInvitationRequest request =
+        new AccountInvitationRequest("editor@nss.test", AccountType.EDITOR);
+    when(users.findByEmailIgnoreCase("editor@nss.test")).thenReturn(Optional.empty());
+    when(users.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+    var response = service.invite(request);
+
+    var captor = org.mockito.ArgumentCaptor.forClass(User.class);
+    verify(users).save(captor.capture());
+    User invited = captor.getValue();
+    assertEquals(AccountType.EDITOR, invited.getAccountType());
+    assertEquals(AccountType.EDITOR, response.accountType());
+    verify(firstAccess).issue(invited);
+  }
+
+  @Test
   void rejectsDuplicateInvitation() {
     User existing = user(4L, "existing@example.com", AccountType.USER);
     when(users.findByEmailIgnoreCase("existing@example.com")).thenReturn(Optional.of(existing));

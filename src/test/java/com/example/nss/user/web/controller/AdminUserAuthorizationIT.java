@@ -38,6 +38,13 @@ class AdminUserAuthorizationIT {
   }
 
   @Test
+  void rejectsAuthenticatedEditorAccessToAdminUsers() throws Exception {
+    mockMvc
+        .perform(get("/api/v1/admin/users").with(user("editor").roles("EDITOR")))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
   void permitsAuthenticatedAdminAccessToAdminUsers() throws Exception {
     mockMvc
         .perform(get("/api/v1/admin/users").with(user("admin").roles("ADMIN")))
