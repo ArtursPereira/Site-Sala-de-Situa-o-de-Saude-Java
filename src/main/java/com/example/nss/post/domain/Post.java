@@ -50,4 +50,17 @@ public class Post {
     private Instant updatedAt;
 
     private Instant publishedAt;
+
+
+    @PrePersist
+    private void onCreate() {
+        Instant now = Instant.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    private void onUpdate() {
+        this.updatedAt = Instant.now();
+    }
 }
