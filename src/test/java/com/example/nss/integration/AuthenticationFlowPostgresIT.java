@@ -52,6 +52,9 @@ class AuthenticationFlowPostgresIT {
     registry.add("spring.datasource.username", POSTGRES::getUsername);
     registry.add("spring.datasource.password", POSTGRES::getPassword);
     registry.add("spring.docker.compose.enabled", () -> false);
+    registry.add("spring.sql.init.mode", () -> "always");
+    registry.add(
+        "spring.sql.init.schema-locations", () -> "classpath:db/migration/V1__create_news.sql");
     registry.add("analytics.datasource.url", POSTGRES::getJdbcUrl);
     registry.add("analytics.datasource.username", POSTGRES::getUsername);
     registry.add("analytics.datasource.password", POSTGRES::getPassword);
